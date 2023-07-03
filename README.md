@@ -11,3 +11,7 @@ This library is from the JDS (Jackal Development Suite) family.
 | GoLang                | [jackalgo](https://github.com/JackalLabs/jackalgo)                                         |
 
 
+## Canine-Chain Support
+| jackalgo version | canine-chain version |
+|------------------|----------------------|
+| v0.0.0           | v3.0.0               |
