@@ -8,7 +8,3 @@ type WalletHandler struct {
 	clientCtx client.Context
 	address   string
 }
-
-type RnsHandler struct {
-	walletHandler *WalletHandler
-}

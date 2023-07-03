@@ -1,10 +1,11 @@
-package jackalgo
+package handler_rns
 
 import (
 	"fmt"
+	"github.com/JackalLabs/jackalgo"
 )
 
-func NewRnsHandler(w *WalletHandler) *RnsHandler {
+func NewRnsHandler(w *jackalgo.WalletHandler) *RnsHandler {
 
 	r := RnsHandler{
 		walletHandler: w,

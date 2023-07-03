@@ -3,6 +3,11 @@ package jackalgo
 import (
 	"context"
 	"fmt"
+	"github.com/JackalLabs/jackalgo/handler_file_io"
+	"github.com/JackalLabs/jackalgo/handler_gov"
+	"github.com/JackalLabs/jackalgo/handler_oracle"
+	"github.com/JackalLabs/jackalgo/handler_rns"
+	"github.com/JackalLabs/jackalgo/handler_storage"
 
 	"github.com/JackalLabs/jackalgo/tx"
 	"github.com/JackalLabs/jackalgo/utils"
@@ -40,8 +45,20 @@ func (w *WalletHandler) SayHello() {
 	fmt.Println("Hello from WalletHandler")
 }
 
-func (w *WalletHandler) NewRnsHandler() *RnsHandler {
-	return NewRnsHandler(w)
+func (w *WalletHandler) NewFileIoHandler() *handler_file_io.FileIoHandler {
+	return handler_file_io.NewFileIoHandler(w)
+}
+func (w *WalletHandler) NewGovHandler() *handler_gov.GovHandler {
+	return handler_gov.NewGovHandler(w)
+}
+func (w *WalletHandler) NewOracleHandler() *handler_oracle.OracleHandler {
+	return handler_oracle.NewOracleHandler(w)
+}
+func (w *WalletHandler) NewRnsHandler() *handler_rns.RnsHandler {
+	return handler_rns.NewRnsHandler(w)
+}
+func (w *WalletHandler) NewStorageHandler() *handler_storage.StorageHandler {
+	return handler_storage.NewStorageHandler(w)
 }
 
 func (w *WalletHandler) GetChainID() string {
