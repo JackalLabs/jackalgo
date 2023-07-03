@@ -6,6 +6,7 @@ import (
 
 type WalletHandler struct {
 	clientCtx client.Context
+	address   string
 }
 
 type RnsHandler struct {

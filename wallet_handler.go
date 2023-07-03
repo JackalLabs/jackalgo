@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/JackalLabs/jackalgo/tx"
 	"github.com/JackalLabs/jackalgo/utils"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 func NewWalletHandler() *WalletHandler {
@@ -43,4 +46,17 @@ func (w *WalletHandler) NewRnsHandler() *RnsHandler {
 
 func (w *WalletHandler) GetChainID() string {
 	return w.clientCtx.ChainID
+}
+
+func (w *WalletHandler) SendTokens(toAddress string, amount types.Coins) (*types.TxResponse, error) {
+
+	sendMsg := banktypes.MsgSend{
+		FromAddress: w.address,
+		ToAddress:   toAddress,
+		Amount:      amount,
+	}
+
+	res, err := tx.SendTx(w.clientCtx, nil, &sendMsg)
+
+	return res, err
 }
