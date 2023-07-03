@@ -23,9 +23,15 @@ func NewWalletHandler() *WalletHandler {
 		clientCtx = *clientCtxPtr
 	}
 
+	clientCtx = clientCtx.WithChainID("jackal-1")
+
 	w := WalletHandler{
 		clientCtx: clientCtx,
 	}
 
 	return &w
+}
+
+func (w *WalletHandler) GetChainID() string {
+	return w.clientCtx.ChainID
 }
