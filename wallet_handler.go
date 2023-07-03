@@ -2,6 +2,7 @@ package jackalgo
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/JackalLabs/jackalgo/utils"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -32,6 +33,6 @@ func NewWalletHandler() *WalletHandler {
 	return &w
 }
 
-func (w *WalletHandler) GetChainID() string {
-	return w.clientCtx.ChainID
+func (w *WalletHandler) SayHello() {
+	fmt.Println("Hello from RnsHandler")
 }

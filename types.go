@@ -7,3 +7,7 @@ import (
 type WalletHandler struct {
 	clientCtx client.Context
 }
+
+type RnsHandler struct {
+	walletHandler WalletHandler
+}
