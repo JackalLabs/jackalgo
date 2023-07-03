@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func NewRnsHandler(w WalletHandler) *RnsHandler {
+func NewRnsHandler(w *WalletHandler) *RnsHandler {
 
 	r := RnsHandler{
 		walletHandler: w,

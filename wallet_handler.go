@@ -36,3 +36,7 @@ func NewWalletHandler() *WalletHandler {
 func (w *WalletHandler) SayHello() {
 	fmt.Println("Hello from RnsHandler")
 }
+
+func (w *WalletHandler) GetChainID() string {
+	return w.clientCtx.ChainID
+}

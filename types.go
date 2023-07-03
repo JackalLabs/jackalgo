@@ -9,5 +9,5 @@ type WalletHandler struct {
 }
 
 type RnsHandler struct {
-	walletHandler WalletHandler
+	walletHandler *WalletHandler
 }
