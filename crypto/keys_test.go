@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/TheMarstonConnell/DelphiHack/server/jstore/crypto"
+	"github.com/JackalLabs/jackalgo/crypto"
 	"github.com/stretchr/testify/require"
 )
 
