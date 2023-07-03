@@ -2,7 +2,7 @@
 
 The Jackal Storage development kit for Go. 
 
-## Other Environments
+## Available Environments
 This library is from the JDS (Jackal Development Suite) family.
 
 | Language              | Library                                              |
