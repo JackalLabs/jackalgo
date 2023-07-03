@@ -34,7 +34,11 @@ func NewWalletHandler() *WalletHandler {
 }
 
 func (w *WalletHandler) SayHello() {
-	fmt.Println("Hello from RnsHandler")
+	fmt.Println("Hello from WalletHandler")
+}
+
+func (w *WalletHandler) NewRnsHandler() *RnsHandler {
+	return NewRnsHandler(w)
 }
 
 func (w *WalletHandler) GetChainID() string {
