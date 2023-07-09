@@ -3,7 +3,7 @@ package handler_oracle
 import (
 	"fmt"
 
-	"github.com/JackalLabs/jackalgo/handler_wallet"
+	"github.com/JackalLabs/jackalgo/handlers/handler_wallet"
 )
 
 func NewOracleHandler(w *handler_wallet.WalletHandler) *OracleHandler {

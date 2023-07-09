@@ -3,7 +3,7 @@ package handler_rns
 import (
 	"fmt"
 
-	"github.com/JackalLabs/jackalgo/handler_wallet"
+	"github.com/JackalLabs/jackalgo/handlers/handler_wallet"
 )
 
 func NewRnsHandler(w *handler_wallet.WalletHandler) *RnsHandler {

@@ -3,7 +3,7 @@ package handler_wallet_test
 import (
 	"testing"
 
-	"github.com/JackalLabs/jackalgo/handler_wallet"
+	"github.com/JackalLabs/jackalgo/handlers/handler_wallet"
 	"github.com/stretchr/testify/require"
 )
 
