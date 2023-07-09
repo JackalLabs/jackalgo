@@ -2,10 +2,11 @@ package handler_gov
 
 import (
 	"fmt"
-	"github.com/JackalLabs/jackalgo"
+
+	"github.com/JackalLabs/jackalgo/handler_wallet"
 )
 
-func NewGovHandler(w *jackalgo.WalletHandler) *GovHandler {
+func NewGovHandler(w *handler_wallet.WalletHandler) *GovHandler {
 
 	g := GovHandler{
 		walletHandler: w,

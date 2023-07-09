@@ -2,10 +2,11 @@ package handler_file_io
 
 import (
 	"fmt"
-	"github.com/JackalLabs/jackalgo"
+
+	"github.com/JackalLabs/jackalgo/handler_wallet"
 )
 
-func NewFileIoHandler(w *jackalgo.WalletHandler) *FileIoHandler {
+func NewFileIoHandler(w *handler_wallet.WalletHandler) *FileIoHandler {
 
 	f := FileIoHandler{
 		walletHandler: w,

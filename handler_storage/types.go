@@ -1,9 +1,7 @@
 package handler_storage
 
-import (
-	"github.com/JackalLabs/jackalgo"
-)
+import "github.com/JackalLabs/jackalgo/handler_wallet"
 
 type StorageHandler struct {
-	walletHandler *jackalgo.WalletHandler
+	walletHandler *handler_wallet.WalletHandler
 }

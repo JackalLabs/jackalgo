@@ -1,9 +1,9 @@
 package handler_rns
 
 import (
-	"github.com/JackalLabs/jackalgo"
+	"github.com/JackalLabs/jackalgo/handler_wallet"
 )
 
 type RnsHandler struct {
-	walletHandler *jackalgo.WalletHandler
+	walletHandler *handler_wallet.WalletHandler
 }
