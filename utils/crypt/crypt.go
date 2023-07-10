@@ -8,11 +8,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/JackalLabs/jackalgo/types"
+	"github.com/tendermint/tendermint/libs/json"
 )
 
 func GenKey() []byte {
@@ -33,8 +34,7 @@ func GenIv() []byte {
 	return token
 }
 
-func ConvertToEncryptedFile(workingFile types.File, key []byte, iv []byte) (*types.File, error) {
-
+func encrypt(data []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -43,34 +43,95 @@ func ConvertToEncryptedFile(workingFile types.File, key []byte, iv []byte) (*typ
 	if err != nil {
 		return nil, err
 	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+
+	cipherText := gcm.Seal(nil, iv, data, nil)
+	return cipherText, nil
+}
+
+func decrypt(data []byte, key []byte, iv []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
 		return nil, err
 	}
-
-	b := bytes.NewBuffer([]byte{})
-	_, err = b.ReadFrom(&workingFile)
+	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return nil, err
 	}
 
-	cipherText := gcm.Seal(nonce, nonce, b.Bytes(), nil)
-	//
-	//const detailsBlob = new Blob([JSON.stringify(details)])
-	//const encryptedArray: Blob[] = [
-	//new Blob([(detailsBlob.size + 16).toString().padStart(8, '0')]),
-	//await aesCrypt(detailsBlob, key, iv, 'encrypt')
-	//]
-	//for (let i = 0; i < workingFile.size; i += chunkSize) {
-	//const blobChunk = workingFile.slice(i, i + chunkSize)
-	//encryptedArray.push(
-	//new Blob([(blobChunk.size + 16).toString().padStart(8, '0')]),
-	//await aesCrypt(blobChunk, key, iv, 'encrypt')
-	//)
-	//}
-	//const finalName = `${await hashAndHex(
-	//  details.name + Date.now().toString()
-	//)}.jkl`
+	return gcm.Open(nil, iv, data, nil)
+}
+
+func ConvertFromEncryptedFile(data []byte, key []byte, iv []byte) (*types.File, error) {
+	var details []byte
+	parts := make([]byte, 0)
+	var i int64
+	for i = 0; i < int64(len(data)); {
+		offset := i + 8
+		segSize, err := strconv.ParseInt(string(data[i:offset]), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		last := offset + segSize
+		segment := data[offset:last]
+
+		raw, err := decrypt(segment, key, iv)
+		if err != nil {
+			return nil, err
+		}
+		if i == 0 {
+			details = raw
+		} else {
+			parts = append(parts, raw...)
+		}
+		i = last
+	}
+
+	var detailStruct types.Details
+	err := json.Unmarshal(details, &detailStruct)
+	if err != nil {
+		return nil, err
+	}
+
+	f := types.File{
+		Buffer:  bytes.NewBuffer(parts),
+		Details: detailStruct,
+	}
+
+	return &f, nil
+
+}
+
+func ConvertToEncryptedFile(workingFile types.File, key []byte, iv []byte) (*types.File, error) {
+	chunkSize := int64(32 * 1024 * 1024)
+
+	jsonDetails, err := json.Marshal(workingFile.Details)
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedArray := []byte{}
+
+	b, err := encrypt(jsonDetails, key, iv)
+	if err != nil {
+		return nil, err
+	}
+	chunkedSize := int64(len(b) + 16)
+	sizeData := []byte(fmt.Sprintf("%08d", chunkedSize))
+	encryptedArray = append(encryptedArray, sizeData...)
+	encryptedArray = append(encryptedArray, b...)
+
+	fileBytes := workingFile.Buffer.Bytes()
+	for i := int64(0); i < workingFile.Details.Size; i += chunkSize {
+		chunk := fileBytes[i : i+chunkSize]
+		enc, err := encrypt(chunk, key, iv)
+		if err != nil {
+			return nil, err
+		}
+		chunkedSize := int64(len(chunk) + 16)
+		sizeData := []byte(fmt.Sprintf("00000000%d", chunkedSize))
+		encryptedArray = append(encryptedArray, sizeData...)
+		encryptedArray = append(encryptedArray, enc...)
+	}
 
 	hexedName := HashAndHex(fmt.Sprintf("%s%d", workingFile.Name(), time.Now()))
 
@@ -78,13 +139,13 @@ func ConvertToEncryptedFile(workingFile types.File, key []byte, iv []byte) (*typ
 
 	details := types.Details{
 		Name:         finalName,
-		Size:         int64(len(cipherText)),
+		Size:         int64(len(encryptedArray)),
 		FileType:     "text/plain",
 		LastModified: time.Now(),
 	}
 
 	f := types.File{
-		Buffer:  bytes.NewBuffer(cipherText),
+		Buffer:  bytes.NewBuffer(encryptedArray),
 		Details: details,
 	}
 

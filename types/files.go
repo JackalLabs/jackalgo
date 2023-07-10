@@ -6,15 +6,15 @@ import (
 )
 
 type Details struct {
-	Name         string
-	LastModified time.Time
-	FileType     string
-	Size         int64
+	Name         string    `json:"name"`
+	LastModified time.Time `json:"last-modified"`
+	FileType     string    `json:"type"`
+	Size         int64     `json:"size"`
 }
 
 type File struct {
-	Details Details
-	Buffer  *bytes.Buffer
+	Details Details       `json:"details"`
+	Buffer  *bytes.Buffer `json:"bytes"`
 }
 
 func (f File) Read(p []byte) (n int, err error) {
