@@ -21,7 +21,6 @@ type FileUploadHandler struct {
 }
 
 func NewFileUploadHandler(file os.File, parentPath string, uuid string, savedKey []byte, savedIv []byte) (*FileUploadHandler, error) {
-
 	fileDetails, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -60,7 +59,6 @@ func NewFileUploadHandler(file os.File, parentPath string, uuid string, savedKey
 }
 
 func TrackFile(file os.File, parentPath string) (*FileUploadHandler, error) {
-
 	savedKey := crypt.GenKey()
 	savedIv := crypt.GenIv()
 	uuid := uuid.New().String()
@@ -108,6 +106,7 @@ func (f *FileUploadHandler) GetEnc() (key []byte, iv []byte) {
 func (f *FileUploadHandler) GetFullMerkle() string {
 	return crypt.HexFullPath(f.GetMerklePath(), f.GetWhoAmI())
 }
+
 func (f *FileUploadHandler) GetMerklePath() string {
 	return crypt.MerkleMeBro(f.parentPath)
 }

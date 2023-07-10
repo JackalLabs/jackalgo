@@ -1,12 +1,15 @@
 package wallet_handler
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/JackalLabs/jackalgo/tx"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	ecies "github.com/ecies/go/v2"
 	"github.com/spf13/pflag"
 )
 
@@ -35,14 +38,12 @@ func AddTxFlagsToCmd(set *pflag.FlagSet) {
 }
 
 func (w *WalletHandler) SendTx(msg types.Msg) (*types.TxResponse, error) {
-
 	res, err := tx.SendTx(w.clientCtx, w.flags, msg)
 
 	return res, err
 }
 
 func (w *WalletHandler) SendTokens(toAddress string, amount types.Coins) (*types.TxResponse, error) {
-
 	sendMsg := banktypes.MsgSend{
 		FromAddress: w.address,
 		ToAddress:   toAddress,
@@ -52,4 +53,17 @@ func (w *WalletHandler) SendTokens(toAddress string, amount types.Coins) (*types
 	res, err := w.SendTx(&sendMsg)
 
 	return res, err
+}
+
+func (w *WalletHandler) AsymmetricEncrypt(toEncrypt []byte, pubKey cryptotypes.PubKey) (string, error) {
+	pkey, err := ecies.NewPublicKeyFromBytes(pubKey.Bytes())
+	if err != nil {
+		return "", err
+	}
+	enc, err := ecies.Encrypt(pkey, toEncrypt)
+	if err != nil {
+		return "", err
+	}
+	encoded := hex.EncodeToString(enc)
+	return encoded, nil
 }

@@ -12,7 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JackalLabs/jackalgo/handlers/wallet_handler"
 	"github.com/JackalLabs/jackalgo/types"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/tendermint/tendermint/libs/json"
 )
 
@@ -34,7 +36,7 @@ func GenIv() []byte {
 	return token
 }
 
-func encrypt(data []byte, key []byte, iv []byte) ([]byte, error) {
+func Encrypt(data []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -48,7 +50,7 @@ func encrypt(data []byte, key []byte, iv []byte) ([]byte, error) {
 	return cipherText, nil
 }
 
-func decrypt(data []byte, key []byte, iv []byte) ([]byte, error) {
+func Decrypt(data []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -74,7 +76,7 @@ func ConvertFromEncryptedFile(data []byte, key []byte, iv []byte) (*types.File, 
 		last := offset + segSize
 		segment := data[offset:last]
 
-		raw, err := decrypt(segment, key, iv)
+		raw, err := Decrypt(segment, key, iv)
 		if err != nil {
 			return nil, err
 		}
@@ -98,20 +100,19 @@ func ConvertFromEncryptedFile(data []byte, key []byte, iv []byte) (*types.File, 
 	}
 
 	return &f, nil
-
 }
 
 func ConvertToEncryptedFile(workingFile types.File, key []byte, iv []byte) (*types.File, error) {
 	chunkSize := int64(32 * 1024 * 1024)
 
-	jsonDetails, err := json.Marshal(workingFile.Details)
+	jsonDetails, err := json.Marshal(workingFile.Details) // TODO make sure details match json
 	if err != nil {
 		return nil, err
 	}
 
 	encryptedArray := []byte{}
 
-	b, err := encrypt(jsonDetails, key, iv)
+	b, err := Encrypt(jsonDetails, key, iv)
 	if err != nil {
 		return nil, err
 	}
@@ -122,18 +123,23 @@ func ConvertToEncryptedFile(workingFile types.File, key []byte, iv []byte) (*typ
 
 	fileBytes := workingFile.Buffer.Bytes()
 	for i := int64(0); i < workingFile.Details.Size; i += chunkSize {
-		chunk := fileBytes[i : i+chunkSize]
-		enc, err := encrypt(chunk, key, iv)
+		end := i + chunkSize
+		s := int64(len(fileBytes))
+		if end >= s {
+			end = s - 1
+		}
+		chunk := fileBytes[i:end]
+		enc, err := Encrypt(chunk, key, iv)
 		if err != nil {
 			return nil, err
 		}
 		chunkedSize := int64(len(chunk) + 16)
-		sizeData := []byte(fmt.Sprintf("00000000%d", chunkedSize))
+		sizeData := []byte(fmt.Sprintf("%08d", chunkedSize))
 		encryptedArray = append(encryptedArray, sizeData...)
 		encryptedArray = append(encryptedArray, enc...)
 	}
 
-	hexedName := HashAndHex(fmt.Sprintf("%s%d", workingFile.Name(), time.Now()))
+	hexedName := HashAndHex(fmt.Sprintf("%s%d", workingFile.Name(), time.Now().Unix()))
 
 	finalName := fmt.Sprintf("%s.jkl", hexedName)
 
@@ -172,4 +178,16 @@ func MerkleMeBro(rawpath string) string {
 	}
 
 	return merkle
+}
+
+func AesToString(wallet *wallet_handler.WalletHandler, pubKey cryptotypes.PubKey, key []byte, iv []byte) (string, error) {
+	theIv, err := wallet.AsymmetricEncrypt(iv, pubKey)
+	if err != nil {
+		return "", err
+	}
+	theKey, err := wallet.AsymmetricEncrypt(key, pubKey)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s|%s", theIv, theKey), nil
 }

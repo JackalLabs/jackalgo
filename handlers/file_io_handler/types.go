@@ -7,7 +7,6 @@ type FileIoHandler struct {
 }
 
 func NewFileIoHandler(w *wallet_handler.WalletHandler) *FileIoHandler {
-
 	f := FileIoHandler{
 		walletHandler: w,
 	}

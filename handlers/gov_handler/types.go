@@ -7,7 +7,6 @@ type GovHandler struct {
 }
 
 func NewGovHandler(w *wallet_handler.WalletHandler) *GovHandler {
-
 	g := GovHandler{
 		walletHandler: w,
 	}

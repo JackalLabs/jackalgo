@@ -10,7 +10,6 @@ type FileDownloadHandler struct {
 }
 
 func NewFileDownloadHandler(file *types.File) *FileDownloadHandler {
-
 	f := FileDownloadHandler{
 		File: file,
 	}

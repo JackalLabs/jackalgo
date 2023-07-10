@@ -7,7 +7,6 @@ type StorageHandler struct {
 }
 
 func NewStorageHandler(w *wallet_handler.WalletHandler) *StorageHandler {
-
 	s := StorageHandler{
 		walletHandler: w,
 	}

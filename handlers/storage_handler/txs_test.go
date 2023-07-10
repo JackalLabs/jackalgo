@@ -17,5 +17,4 @@ func TestBuyStorage(t *testing.T) {
 
 	_, err := storageHandler.BuyStorage("jkl1arsaayyj5tash86mwqudmcs2fd5jt5zgc3sexc", 1, 1_000_000)
 	r.NoError(err)
-
 }

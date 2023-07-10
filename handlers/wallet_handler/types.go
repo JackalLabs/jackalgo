@@ -3,8 +3,6 @@ package wallet_handler
 import (
 	"context"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
-
 	"github.com/JackalLabs/jackalgo/utils"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -38,18 +36,17 @@ type WalletHandler struct {
 }
 
 func NewWalletHandler(seedPhrase string) *WalletHandler {
-
 	cfg := sdk.GetConfig()
 	cfg.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
 	cfg.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
 	cfg.SetBech32PrefixForConsensusNode(Bech32PrefixConsAddr, Bech32PrefixConsPub)
-	//cfg.SetAddressVerifier(wasmtypes.VerifyAddressLen())
+	// cfg.SetAddressVerifier(wasmtypes.VerifyAddressLen())
 	cfg.Seal()
 
-	var pKey *secp256k1.PrivKey = nil
-	var address = ""
+	var pKey *cryptotypes.PrivKey = nil
+	address := ""
 	if len(seedPhrase) > 0 {
-		pKey = secp256k1.GenPrivKeyFromSecret([]byte(seedPhrase))
+		pKey = cryptotypes.GenPrivKeyFromSecret([]byte(seedPhrase))
 		var err error
 		address, err = bech32.ConvertAndEncode(Bech32PrefixAccAddr, pKey.PubKey().Address().Bytes())
 		if err != nil {

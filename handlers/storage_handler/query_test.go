@@ -17,5 +17,4 @@ func TestQueryPayData(t *testing.T) {
 
 	_, err := storageHandler.QueryGetPayData("jkl1arsaayyj5tash86mwqudmcs2fd5jt5zgc3sexc")
 	r.NoError(err)
-
 }

@@ -7,7 +7,6 @@ type OracleHandler struct {
 }
 
 func NewOracleHandler(w *wallet_handler.WalletHandler) *OracleHandler {
-
 	o := OracleHandler{
 		walletHandler: w,
 	}

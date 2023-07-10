@@ -18,7 +18,6 @@ func GetAddress(ctx client.Context) (string, error) {
 }
 
 func ReadKey(ctx client.Context) (*StorPrivKey, error) {
-
 	keyStruct := StorPrivKey{} // TODO: Get Key from seed phrase
 	return &keyStruct, nil
 }

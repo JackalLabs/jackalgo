@@ -7,7 +7,6 @@ type RnsHandler struct {
 }
 
 func NewRnsHandler(w *wallet_handler.WalletHandler) *RnsHandler {
-
 	r := RnsHandler{
 		walletHandler: w,
 	}
