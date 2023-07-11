@@ -9,6 +9,7 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
+	ecies "github.com/ecies/go/v2"
 	"github.com/spf13/pflag"
 )
 
@@ -33,9 +34,10 @@ type WalletHandler struct {
 	address   string
 	flags     *pflag.FlagSet
 	key       *cryptotypes.PrivKey
+	eciesKey  *ecies.PrivateKey
 }
 
-func NewWalletHandler(seedPhrase string) *WalletHandler {
+func NewWalletHandler(seedPhrase string) (*WalletHandler, error) {
 	cfg := sdk.GetConfig()
 	cfg.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
 	cfg.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
@@ -50,7 +52,7 @@ func NewWalletHandler(seedPhrase string) *WalletHandler {
 		var err error
 		address, err = bech32.ConvertAndEncode(Bech32PrefixAccAddr, pKey.PubKey().Address().Bytes())
 		if err != nil {
-			return nil
+			return nil, err
 		}
 	}
 
@@ -76,12 +78,20 @@ func NewWalletHandler(seedPhrase string) *WalletHandler {
 
 	flagSet.String(flags.FlagFrom, address, "Name or address of private key with which to sign")
 
+	newpkey, err := pKey.Sign([]byte("Initiate Jackal Session"))
+	if err != nil {
+		return nil, err
+	}
+
+	eciesKey := ecies.NewPrivateKeyFromBytes(newpkey[:32])
+
 	w := WalletHandler{
 		clientCtx: clientCtx,
 		flags:     flagSet,
 		key:       pKey,
 		address:   address,
+		eciesKey:  eciesKey,
 	}
 
-	return &w
+	return &w, nil
 }

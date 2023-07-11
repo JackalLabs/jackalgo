@@ -176,11 +176,11 @@ func (f *FolderHandler) MakeChildDirInfo(childName string) (myName string, myPar
 }
 
 type FolderFileFrame struct {
-	WhoAmI       string
-	WhereAmI     string
-	WhoOwnsMe    string
-	DirChildren  []string
-	FileChildren FolderChildFiles
+	WhoAmI       string           `json:"whoAmI"`
+	WhereAmI     string           `json:"whereAmI"`
+	WhoOwnsMe    string           `json:"whoOwnsMe"`
+	DirChildren  []string         `json:"dirChildren"`
+	FileChildren FolderChildFiles `json:"fileChildren"`
 }
 
 type FolderChildFiles map[string]types.Details

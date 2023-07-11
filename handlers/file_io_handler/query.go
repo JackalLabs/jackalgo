@@ -1,6 +1,8 @@
 package file_io_handler
 
 import (
+	"encoding/json"
+
 	"github.com/JackalLabs/jackalgo/handlers/folder_handler"
 	"github.com/JackalLabs/jackalgo/utils/compression"
 )
@@ -10,6 +12,12 @@ func (f *FileIoHandler) DownloadFolder(rawPath string) (folderHandler *folder_ha
 	if err != nil {
 		return nil, err
 	}
-	// TODO - convert generic ReadFileTreeEntry return to FolderFileFrame
-	return folder_handler.TrackFolder(rawFolder, f.walletHandler), nil
+
+	var frame folder_handler.FolderFileFrame
+	err = json.Unmarshal(rawFolder, &frame)
+	if err != nil {
+		return nil, err
+	}
+
+	return folder_handler.TrackFolder(frame, f.walletHandler), nil
 }

@@ -11,10 +11,11 @@ import (
 func TestBuyStorage(t *testing.T) {
 	r := require.New(t)
 
-	wallet := wallet_handler.NewWalletHandler("slim odor fiscal swallow piece tide naive river inform shell dune crunch canyon ten time universe orchard roast horn ritual siren cactus upon forum")
+	wallet, err := wallet_handler.NewWalletHandler("slim odor fiscal swallow piece tide naive river inform shell dune crunch canyon ten time universe orchard roast horn ritual siren cactus upon forum")
+	r.NoError(err)
 
 	storageHandler := storage_handler.NewStorageHandler(wallet)
 
-	_, err := storageHandler.BuyStorage("jkl1arsaayyj5tash86mwqudmcs2fd5jt5zgc3sexc", 1, 1_000_000)
+	_, err = storageHandler.BuyStorage("jkl1arsaayyj5tash86mwqudmcs2fd5jt5zgc3sexc", 1, 1_000_000)
 	r.NoError(err)
 }

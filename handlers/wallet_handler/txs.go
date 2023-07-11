@@ -37,8 +37,8 @@ func AddTxFlagsToCmd(set *pflag.FlagSet) {
 	set.String(flags.FlagGas, "", fmt.Sprintf("gas limit to set per-transaction; set to %q to calculate sufficient gas automatically (default %d)", flags.GasFlagAuto, flags.DefaultGasLimit))
 }
 
-func (w *WalletHandler) SendTx(msg types.Msg) (*types.TxResponse, error) {
-	res, err := tx.SendTx(w.clientCtx, w.flags, w.getPrivKey(), w.GetAddress(), msg)
+func (w *WalletHandler) SendTx(msg ...types.Msg) (*types.TxResponse, error) {
+	res, err := tx.SendTx(w.clientCtx, w.flags, w.getPrivKey(), w.GetAddress(), msg...)
 
 	return res, err
 }
@@ -73,6 +73,6 @@ func (w *WalletHandler) AsymmetricDecrypt(toDecrypt string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	pkey := ecies.NewPrivateKeyFromBytes(w.key.Bytes())
-	return ecies.Decrypt(pkey, dec)
+
+	return ecies.Decrypt(w.eciesKey, dec)
 }

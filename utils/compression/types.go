@@ -15,15 +15,15 @@ type MsgPartialPostFileBundle struct {
 	TrackingNumber string // uuid
 }
 type BasePerms struct {
-	trackingNumber string
-	key            []byte
-	iv             []byte
+	TrackingNumber string
+	Key            []byte
+	Iv             []byte
 }
 
 type StandardPerms struct {
-	basePerms BasePerms
-	pubKey    cryptotypes.PubKey
-	usr       string
+	BasePerms BasePerms
+	PubKey    cryptotypes.PubKey
+	Usr       string
 }
 
 type EditorsViewers map[string]string

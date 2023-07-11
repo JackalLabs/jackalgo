@@ -7,6 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/crypto/types"
+	ecies "github.com/ecies/go/v2"
 	filetreetypes "github.com/jackalLabs/canine-chain/v3/x/filetree/types"
 )
 
@@ -20,6 +21,10 @@ func (w *WalletHandler) GetAddress() string {
 
 func (w *WalletHandler) GetPubKey() types.PubKey {
 	return w.key.PubKey()
+}
+
+func (w *WalletHandler) GetECIESPubKey() *ecies.PublicKey {
+	return w.eciesKey.PublicKey
 }
 
 func (w *WalletHandler) getPrivKey() *secp256k1.PrivKey {

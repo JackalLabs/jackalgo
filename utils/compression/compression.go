@@ -22,7 +22,7 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 	iv := crypt.GenIv()
 	key := crypt.GenKey()
 
-	msg := MsgPartialPostFileBundle{
+	msg := filetreetypes.MsgPostFile{
 		Account:        account,
 		Creator:        creator,
 		Contents:       "",
@@ -47,16 +47,16 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 	}
 
 	perms := BasePerms{
-		trackingNumber: msg.TrackingNumber,
-		iv:             iv,
-		key:            key,
+		TrackingNumber: msg.TrackingNumber,
+		Iv:             iv,
+		Key:            key,
 	}
 
 	selfPubKey := walletRef.GetPubKey()
 	me := StandardPerms{
-		basePerms: perms,
-		pubKey:    selfPubKey,
-		usr:       creator,
+		BasePerms: perms,
+		PubKey:    selfPubKey,
+		Usr:       creator,
 	}
 
 	ukey, uivkey, err := MakePermsBlock("e", me, walletRef)
@@ -91,9 +91,9 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 			return nil, err
 		}
 		them := StandardPerms{
-			basePerms: perms,
-			pubKey:    destPubKey,
-			usr:       toAddress,
+			BasePerms: perms,
+			PubKey:    destPubKey,
+			Usr:       toAddress,
 		}
 
 		ev := make(EditorsViewers, 0)
@@ -115,10 +115,10 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 		msg.Viewers = string(viewers)
 	}
 
-	return buildPostFile(msg), nil
+	return &msg, nil
 }
 
-func ReadFileTreeEntry(owner string, rawPath string, walletRef types.Wallet) (map[string]any, error) {
+func ReadFileTreeEntry(owner string, rawPath string, walletRef types.Wallet) ([]byte, error) {
 	result, err := utils.GetFileTreeData(rawPath, owner, walletRef)
 	if err != nil {
 		return nil, err
@@ -145,32 +145,16 @@ func ReadFileTreeEntry(owner string, rawPath string, walletRef types.Wallet) (ma
 		return nil, err
 	}
 
-	var ff map[string]any
-	err = json.Unmarshal([]byte(final), &ff)
-
-	return ff, err
+	return []byte(final), err
 }
 
-func buildPostFile(data MsgPartialPostFileBundle) sdk.Msg {
-	return &filetreetypes.MsgPostFile{
-		Creator:        data.Creator,
-		Account:        data.Account,
-		HashParent:     data.HashParent,
-		HashChild:      data.HashChild,
-		Contents:       data.Contents,
-		Editors:        data.Editors,
-		Viewers:        data.Viewers,
-		TrackingNumber: data.TrackingNumber,
-	}
-}
-
-func MakePermsBlock(base string, standardPerms StandardPerms, walletRef *wallet_handler.WalletHandler) (string, string, error) {
-	user := crypt.HashAndHex(fmt.Sprintf("%s%s%s", base, standardPerms.basePerms.trackingNumber, standardPerms.usr))
-	perms, err := crypt.AesToString(walletRef, standardPerms.pubKey, standardPerms.basePerms.key, standardPerms.basePerms.iv)
+func MakePermsBlock(base string, standardPerms StandardPerms, walletRef types.Wallet) (user string, perms string, err error) {
+	user = crypt.HashAndHex(fmt.Sprintf("%s%s%s", base, standardPerms.BasePerms.TrackingNumber, standardPerms.Usr))
+	perms, err = crypt.AesToString(walletRef, standardPerms.PubKey, standardPerms.BasePerms.Key, standardPerms.BasePerms.Iv)
 	if err != nil {
 		return "", "", err
 	}
-	return user, perms, nil
+	return
 }
 
 func CompressData(input string) (string, error) {
