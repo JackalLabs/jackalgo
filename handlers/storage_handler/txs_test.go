@@ -1,6 +1,7 @@
 package storage_handler_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/JackalLabs/jackalgo/handlers/storage_handler"
@@ -11,11 +12,19 @@ import (
 func TestBuyStorage(t *testing.T) {
 	r := require.New(t)
 
-	wallet, err := wallet_handler.DefaultWalletHandler("slim odor fiscal swallow piece tide naive river inform shell dune crunch canyon ten time universe orchard roast horn ritual siren cactus upon forum")
+	wallet, err := wallet_handler.NewWalletHandler(
+		"slim odor fiscal swallow piece tide naive river inform shell dune crunch canyon ten time universe orchard roast horn ritual siren cactus upon forum",
+		"https://testnet-rpc.jackalprotocol.com:443",
+		"lupulella-2")
 	r.NoError(err)
 
 	storageHandler := storage_handler.NewStorageHandler(wallet)
 
-	_, err = storageHandler.BuyStorage("jkl1arsaayyj5tash86mwqudmcs2fd5jt5zgc3sexc", 1, 1_000_000)
+	res, err := storageHandler.BuyStorage("jkl1xzlwuc79dt4g2kxezwpqk5m6eh4wc0zwcpjsyf", 1, 1)
 	r.NoError(err)
+
+	fmt.Println(res.RawLog)
+
+	r.Equal(uint32(0), res.Code)
+
 }

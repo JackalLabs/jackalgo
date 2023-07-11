@@ -18,6 +18,14 @@ func NumTo3xTB(base int64) int64 {
 	return base
 }
 
+func NumTo3xGB(base int64) int64 {
+	base *= 1000 /** KB */
+	base *= 1000 /** MB */
+	base *= 1000 /** GB */
+	base *= 3    /** Redundancy */
+	return base
+}
+
 func GetFileTreeData(rawPath string, owner string, wallet types.Wallet) (*filetreetypes.QueryFileResponse, error) {
 	hexAddress := crypt.MerkleMeBro(rawPath)
 	hexedOwner := crypt.HashAndHex(fmt.Sprintf(`o%s%s`, hexAddress, crypt.HashAndHex(owner)))
