@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"unicode/utf16"
 
+	"github.com/JackalLabs/jackalgo/types"
 	"github.com/JackalLabs/jackalgo/utils"
 	lzstring "github.com/daku10/go-lz-string"
 	filetreetypes "github.com/jackalLabs/canine-chain/v3/x/filetree/types"
 
-	"github.com/JackalLabs/jackalgo/handlers/wallet_handler"
 	"github.com/JackalLabs/jackalgo/utils/crypt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/google/uuid"
 )
 
-func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawContents any, walletRef *wallet_handler.WalletHandler) (sdk.Msg, error) {
+func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawContents any, walletRef types.Wallet) (sdk.Msg, error) {
 	creator := walletRef.GetAddress()
 	account := crypt.HashAndHex(creator)
 
@@ -118,7 +118,7 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 	return buildPostFile(msg), nil
 }
 
-func ReadFileTreeEntry(owner string, rawPath string, walletRef *wallet_handler.WalletHandler) (map[string]any, error) {
+func ReadFileTreeEntry(owner string, rawPath string, walletRef types.Wallet) (map[string]any, error) {
 	result, err := utils.GetFileTreeData(rawPath, owner, walletRef)
 	if err != nil {
 		return nil, err
@@ -164,7 +164,7 @@ func buildPostFile(data MsgPartialPostFileBundle) sdk.Msg {
 	}
 }
 
-func makePermsBlock(base string, standardPerms standardPerms, walletRef *wallet_handler.WalletHandler) (string, string, error) {
+func makePermsBlock(base string, standardPerms standardPerms, walletRef types.Wallet) (string, string, error) {
 	user := crypt.HashAndHex(fmt.Sprintf("%s%s%s", base, standardPerms.basePerms.trackingNumber, standardPerms.usr))
 	perms, err := crypt.AesToString(walletRef, standardPerms.pubKey, standardPerms.basePerms.key, standardPerms.basePerms.iv)
 	if err != nil {

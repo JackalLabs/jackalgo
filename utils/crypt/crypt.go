@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JackalLabs/jackalgo/handlers/wallet_handler"
 	"github.com/JackalLabs/jackalgo/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/tendermint/tendermint/libs/json"
@@ -180,7 +179,7 @@ func MerkleMeBro(rawpath string) string {
 	return merkle
 }
 
-func AesToString(wallet *wallet_handler.WalletHandler, pubKey cryptotypes.PubKey, key []byte, iv []byte) (string, error) {
+func AesToString(wallet types.Wallet, pubKey cryptotypes.PubKey, key []byte, iv []byte) (string, error) {
 	theIv, err := wallet.AsymmetricEncrypt(iv, pubKey)
 	if err != nil {
 		return "", err
@@ -192,8 +191,8 @@ func AesToString(wallet *wallet_handler.WalletHandler, pubKey cryptotypes.PubKey
 	return fmt.Sprintf("%s|%s", theIv, theKey), nil
 }
 
-func StringToAes(wallet *wallet_handler.WalletHandler, source string) (iv []byte, key []byte, err error) {
-	if strings.Index(source, "|") < 0 {
+func StringToAes(wallet types.Wallet, source string) (iv []byte, key []byte, err error) {
+	if !strings.Contains(source, "|") {
 		return nil, nil, fmt.Errorf("cannot have pipe before string start")
 	}
 
