@@ -191,3 +191,21 @@ func AesToString(wallet *wallet_handler.WalletHandler, pubKey cryptotypes.PubKey
 	}
 	return fmt.Sprintf("%s|%s", theIv, theKey), nil
 }
+
+func StringToAes(wallet *wallet_handler.WalletHandler, source string) (iv []byte, key []byte, err error) {
+	if strings.Index(source, "|") < 0 {
+		return nil, nil, fmt.Errorf("cannot have pipe before string start")
+	}
+
+	parts := strings.Split(source, "|")
+
+	theIv, err := wallet.AsymmetricDecrypt(parts[0])
+	if err != nil {
+		return nil, nil, err
+	}
+	theKey, err := wallet.AsymmetricDecrypt(parts[1])
+	if err != nil {
+		return nil, nil, err
+	}
+	return theIv, theKey, nil
+}

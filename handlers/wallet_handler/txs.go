@@ -67,3 +67,12 @@ func (w *WalletHandler) AsymmetricEncrypt(toEncrypt []byte, pubKey cryptotypes.P
 	encoded := hex.EncodeToString(enc)
 	return encoded, nil
 }
+
+func (w *WalletHandler) AsymmetricDecrypt(toDecrypt string) ([]byte, error) {
+	dec, err := hex.DecodeString(toDecrypt)
+	if err != nil {
+		return nil, err
+	}
+	pkey := ecies.NewPrivateKeyFromBytes(w.key.Bytes())
+	return ecies.Decrypt(pkey, dec)
+}

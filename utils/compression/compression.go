@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"unicode/utf16"
 
+	"github.com/JackalLabs/jackalgo/utils"
 	lzstring "github.com/daku10/go-lz-string"
 	filetreetypes "github.com/jackalLabs/canine-chain/v3/x/filetree/types"
 
@@ -117,6 +118,39 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 	return buildPostFile(msg), nil
 }
 
+func ReadFileTreeEntry(owner string, rawPath string, walletRef *wallet_handler.WalletHandler) (map[string]any, error) {
+	result, err := utils.GetFileTreeData(rawPath, owner, walletRef)
+	if err != nil {
+		return nil, err
+	}
+
+	contents := result.Files.Contents
+	viewingAccess := result.Files.ViewingAccess
+	trackingNumber := result.Files.TrackingNumber
+	var parsedViewingAccess EditorsViewers
+	err = json.Unmarshal([]byte(viewingAccess), &parsedViewingAccess)
+	if err != nil {
+		return nil, err
+	}
+
+	viewName := crypt.HashAndHex(fmt.Sprintf("v%s%s", trackingNumber, walletRef.GetAddress()))
+
+	iv, key, err := crypt.StringToAes(walletRef, parsedViewingAccess[viewName])
+	if err != nil {
+		return nil, err
+	}
+
+	final, err := DecryptDecompressString(contents, key, iv)
+	if err != nil {
+		return nil, err
+	}
+
+	var ff map[string]any
+	err = json.Unmarshal([]byte(final), &ff)
+
+	return ff, err
+}
+
 func buildPostFile(data MsgPartialPostFileBundle) sdk.Msg {
 	return &filetreetypes.MsgPostFile{
 		Creator:        data.Creator,
@@ -148,6 +182,11 @@ func CompressData(input string) (string, error) {
 	return fmt.Sprintf("jklpc1%s", s), nil
 }
 
+func DecompressData(input string) (string, error) {
+	s := utf16.Encode([]rune(input))
+	return lzstring.Decompress(s)
+}
+
 func CompressEncryptString(input string, key []byte, iv []byte) (string, error) {
 	compString, err := CompressData(input)
 	if err != nil {
@@ -155,4 +194,15 @@ func CompressEncryptString(input string, key []byte, iv []byte) (string, error) 
 	}
 	data, err := crypt.Encrypt([]byte(compString), key, iv)
 	return string(data), err
+}
+
+func DecryptDecompressString(input string, key []byte, iv []byte) (string, error) {
+	data, err := crypt.Decrypt([]byte(input), key, iv)
+	if err != nil {
+		return "", err
+	}
+
+	decompString, err := DecompressData(string(data))
+
+	return decompString, err
 }
