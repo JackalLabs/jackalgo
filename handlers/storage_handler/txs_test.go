@@ -11,7 +11,7 @@ import (
 func TestBuyStorage(t *testing.T) {
 	r := require.New(t)
 
-	wallet, err := wallet_handler.NewWalletHandler("slim odor fiscal swallow piece tide naive river inform shell dune crunch canyon ten time universe orchard roast horn ritual siren cactus upon forum")
+	wallet, err := wallet_handler.DefaultWalletHandler("slim odor fiscal swallow piece tide naive river inform shell dune crunch canyon ten time universe orchard roast horn ritual siren cactus upon forum")
 	r.NoError(err)
 
 	storageHandler := storage_handler.NewStorageHandler(wallet)
