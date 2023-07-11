@@ -46,20 +46,20 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 		return nil, err
 	}
 
-	perms := basePerms{
+	perms := BasePerms{
 		trackingNumber: msg.TrackingNumber,
 		iv:             iv,
 		key:            key,
 	}
 
 	selfPubKey := walletRef.GetPubKey()
-	me := standardPerms{
+	me := StandardPerms{
 		basePerms: perms,
 		pubKey:    selfPubKey,
 		usr:       creator,
 	}
 
-	ukey, uivkey, err := makePermsBlock("e", me, walletRef)
+	ukey, uivkey, err := MakePermsBlock("e", me, walletRef)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 	msg.Editors = string(editors)
 
 	if toAddress == creator {
-		ukey, uivkey, err := makePermsBlock("v", me, walletRef)
+		ukey, uivkey, err := MakePermsBlock("v", me, walletRef)
 		if err != nil {
 			return nil, err
 		}
@@ -90,18 +90,18 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 		if err != nil {
 			return nil, err
 		}
-		them := standardPerms{
+		them := StandardPerms{
 			basePerms: perms,
 			pubKey:    destPubKey,
 			usr:       toAddress,
 		}
 
 		ev := make(EditorsViewers, 0)
-		r1key, r1ivkey, err := makePermsBlock("v", me, walletRef)
+		r1key, r1ivkey, err := MakePermsBlock("v", me, walletRef)
 		if err != nil {
 			return nil, err
 		}
-		r2key, r2ivkey, err := makePermsBlock("v", them, walletRef)
+		r2key, r2ivkey, err := MakePermsBlock("v", them, walletRef)
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +164,7 @@ func buildPostFile(data MsgPartialPostFileBundle) sdk.Msg {
 	}
 }
 
-func makePermsBlock(base string, standardPerms standardPerms, walletRef types.Wallet) (string, string, error) {
+func MakePermsBlock(base string, standardPerms StandardPerms, walletRef *wallet_handler.WalletHandler) (string, string, error) {
 	user := crypt.HashAndHex(fmt.Sprintf("%s%s%s", base, standardPerms.basePerms.trackingNumber, standardPerms.usr))
 	perms, err := crypt.AesToString(walletRef, standardPerms.pubKey, standardPerms.basePerms.key, standardPerms.basePerms.iv)
 	if err != nil {

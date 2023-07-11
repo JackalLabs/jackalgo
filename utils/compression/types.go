@@ -14,14 +14,14 @@ type MsgPartialPostFileBundle struct {
 	Editors        string // stringify IEditorsViewers
 	TrackingNumber string // uuid
 }
-type basePerms struct {
+type BasePerms struct {
 	trackingNumber string
 	key            []byte
 	iv             []byte
 }
 
-type standardPerms struct {
-	basePerms basePerms
+type StandardPerms struct {
+	basePerms BasePerms
 	pubKey    cryptotypes.PubKey
 	usr       string
 }
