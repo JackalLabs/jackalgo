@@ -7,7 +7,7 @@ import (
 
 type Details struct {
 	Name         string    `json:"name"`
-	LastModified time.Time `json:"last-modified"`
+	LastModified time.Time `json:"lastModified"`
 	FileType     string    `json:"type"`
 	Size         int64     `json:"size"`
 }

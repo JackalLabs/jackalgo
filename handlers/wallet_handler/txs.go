@@ -38,7 +38,7 @@ func AddTxFlagsToCmd(set *pflag.FlagSet) {
 }
 
 func (w *WalletHandler) SendTx(msg types.Msg) (*types.TxResponse, error) {
-	res, err := tx.SendTx(w.clientCtx, w.flags, msg)
+	res, err := tx.SendTx(w.clientCtx, w.flags, w.getPrivKey(), w.GetAddress(), msg)
 
 	return res, err
 }

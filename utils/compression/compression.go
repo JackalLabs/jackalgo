@@ -51,7 +51,7 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 		key:            key,
 	}
 
-	selfPubKey := walletRef.GetPubkey()
+	selfPubKey := walletRef.GetPubKey()
 	me := standardPerms{
 		basePerms: perms,
 		pubKey:    selfPubKey,

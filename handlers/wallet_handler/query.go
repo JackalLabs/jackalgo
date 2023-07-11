@@ -18,8 +18,12 @@ func (w *WalletHandler) GetAddress() string {
 	return w.address
 }
 
-func (w *WalletHandler) GetPubkey() types.PubKey {
+func (w *WalletHandler) GetPubKey() types.PubKey {
 	return w.key.PubKey()
+}
+
+func (w *WalletHandler) getPrivKey() *secp256k1.PrivKey {
+	return w.key
 }
 
 func (w *WalletHandler) GetClientCtx() client.Context {

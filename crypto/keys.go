@@ -4,23 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 )
-
-func GetAddress(ctx client.Context) (string, error) {
-	key, err := ReadKey(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	return key.Address, nil
-}
-
-func ReadKey(ctx client.Context) (*StorPrivKey, error) {
-	keyStruct := StorPrivKey{} // TODO: Get Key from seed phrase
-	return &keyStruct, nil
-}
 
 func Sign(priv *cryptotypes.PrivKey, msg []byte) ([]byte, error) {
 	sig, err := priv.Sign(msg)

@@ -7,6 +7,7 @@ import (
 	"github.com/JackalLabs/jackalgo/crypto"
 	"github.com/cosmos/cosmos-sdk/client"
 	txns "github.com/cosmos/cosmos-sdk/client/tx"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
@@ -14,12 +15,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-func prepareFactory(clientCtx client.Context, txf txns.Factory) (txns.Factory, error) {
-	address, err := crypto.GetAddress(clientCtx)
-	if err != nil {
-		return txf, err
-	}
-
+func prepareFactory(clientCtx client.Context, txf txns.Factory, address string) (txns.Factory, error) {
 	from, err := sdk.AccAddressFromBech32(address)
 	if err != nil {
 		return txf, err
@@ -48,9 +44,9 @@ func prepareFactory(clientCtx client.Context, txf txns.Factory) (txns.Factory, e
 	return txf, nil
 }
 
-func SendTx(clientCtx client.Context, flagSet *pflag.FlagSet, msgs ...sdk.Msg) (*sdk.TxResponse, error) {
+func SendTx(clientCtx client.Context, flagSet *pflag.FlagSet, key *secp256k1.PrivKey, address string, msgs ...sdk.Msg) (*sdk.TxResponse, error) {
 	txf := txns.NewFactoryCLI(clientCtx, flagSet)
-	txf, err := prepareFactory(clientCtx, txf)
+	txf, err := prepareFactory(clientCtx, txf, address)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +71,7 @@ func SendTx(clientCtx client.Context, flagSet *pflag.FlagSet, msgs ...sdk.Msg) (
 	}
 
 	tx.SetFeeGranter(clientCtx.GetFeeGranterAddress())
-	err = sign(txf, clientCtx, tx, true)
+	err = sign(txf, clientCtx, tx, key, true)
 	if err != nil {
 		return nil, err
 	}
@@ -94,21 +90,11 @@ func SendTx(clientCtx client.Context, flagSet *pflag.FlagSet, msgs ...sdk.Msg) (
 	return res, err
 }
 
-func sign(txf txns.Factory, clientCtx client.Context, txBuilder client.TxBuilder, overwriteSig bool) error {
+func sign(txf txns.Factory, clientCtx client.Context, txBuilder client.TxBuilder, key *secp256k1.PrivKey, overwriteSig bool) error {
 	signMode := txf.SignMode()
 	if signMode == signing.SignMode_SIGN_MODE_UNSPECIFIED {
 		// use the SignModeHandler's default mode if unspecified
 		signMode = signing.SignMode_SIGN_MODE_DIRECT
-	}
-
-	pkeyStruct, err := crypto.ReadKey(clientCtx)
-	if err != nil {
-		return err
-	}
-
-	key, err := crypto.ParsePrivKey(pkeyStruct.Key)
-	if err != nil {
-		return err
 	}
 
 	pubKey := key.PubKey()
@@ -136,6 +122,7 @@ func sign(txf txns.Factory, clientCtx client.Context, txBuilder client.TxBuilder
 		Sequence: txf.Sequence(),
 	}
 	var prevSignatures []signing.SignatureV2
+	var err error
 	if !overwriteSig {
 		prevSignatures, err = txBuilder.GetTx().GetSignaturesV2()
 		if err != nil {
