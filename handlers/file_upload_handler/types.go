@@ -17,7 +17,6 @@ type FileUploadHandler struct {
 	iv         []byte
 	cid        string
 	fid        []string
-	isFolder   bool
 }
 
 func NewFileUploadHandler(file os.File, parentPath string, uuid string, savedKey []byte, savedIv []byte) (*FileUploadHandler, error) {
@@ -52,7 +51,6 @@ func NewFileUploadHandler(file os.File, parentPath string, uuid string, savedKey
 		iv:         savedIv,
 		cid:        "",
 		fid:        make([]string, 0),
-		isFolder:   false,
 	}
 
 	return &f, nil
