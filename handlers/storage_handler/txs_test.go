@@ -26,5 +26,4 @@ func TestBuyStorage(t *testing.T) {
 	fmt.Println(res.RawLog)
 
 	r.Equal(uint32(0), res.Code)
-
 }

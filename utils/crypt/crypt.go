@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/JackalLabs/jackalgo/types"
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	ecies "github.com/ecies/go/v2"
 	"github.com/tendermint/tendermint/libs/json"
 )
 
@@ -27,7 +27,7 @@ func GenKey() []byte {
 }
 
 func GenIv() []byte {
-	token := make([]byte, 4)
+	token := make([]byte, aes.BlockSize)
 	_, err := rand.Read(token)
 	if err != nil {
 		panic(err)
@@ -35,57 +35,70 @@ func GenIv() []byte {
 	return token
 }
 
-func Encrypt(data []byte, key []byte, iv []byte) ([]byte, error) {
+func Encrypt(plaintext []byte, key []byte, iv []byte) ([]byte, error) {
+	bPlaintext := PKCS5Padding(plaintext, aes.BlockSize)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	cipherText := gcm.Seal(nil, iv, data, nil)
-	return cipherText, nil
+	ciphertext := make([]byte, len(bPlaintext))
+	mode := cipher.NewCBCEncrypter(block, iv)
+	mode.CryptBlocks(ciphertext, bPlaintext)
+	return ciphertext, nil
 }
 
-func Decrypt(data []byte, key []byte, iv []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+func Decrypt(cipherText []byte, encKey []byte, iv []byte) ([]byte, error) {
+	block, err := aes.NewCipher(encKey)
 	if err != nil {
 		return nil, err
 	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
+	mode := cipher.NewCBCDecrypter(block, iv)
+	bPlaintext := make([]byte, len(cipherText))
+	mode.CryptBlocks(bPlaintext, cipherText)
+	plainText := RemovePKCS5Padding(bPlaintext, aes.BlockSize)
+	return plainText, nil
+}
 
-	return gcm.Open(nil, iv, data, nil)
+func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
+	padding := blockSize - len(ciphertext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
+}
+
+func RemovePKCS5Padding(ciphertext []byte, blockSize int) []byte {
+	padding := int(ciphertext[len(ciphertext)-1])
+	if padding > blockSize {
+		return ciphertext
+	}
+	undoPadding := len(ciphertext) - padding
+	return ciphertext[:undoPadding]
 }
 
 func ConvertFromEncryptedFile(data []byte, key []byte, iv []byte) (*types.File, error) {
 	var details []byte
 	parts := make([]byte, 0)
-	var i int64
-	for i = 0; i < int64(len(data)); {
-		offset := i + 8
-		segSize, err := strconv.ParseInt(string(data[i:offset]), 10, 64)
+	for len(data) > 0 {
+		counterBytes := data[:8]
+		segSize, err := strconv.ParseInt(string(counterBytes), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		last := offset + segSize
-		segment := data[offset:last]
+		segment := data[8 : segSize+8]
 
 		raw, err := Decrypt(segment, key, iv)
 		if err != nil {
 			return nil, err
 		}
-		if i == 0 {
+		if len(details) == 0 {
 			details = raw
 		} else {
 			parts = append(parts, raw...)
 		}
-		i = last
+
+		data = data[segSize+8:]
 	}
+
+	fmt.Println(string(details))
 
 	var detailStruct types.Details
 	err := json.Unmarshal(details, &detailStruct)
@@ -93,15 +106,12 @@ func ConvertFromEncryptedFile(data []byte, key []byte, iv []byte) (*types.File, 
 		return nil, err
 	}
 
-	f := types.File{
-		Buffer:  bytes.NewBuffer(parts),
-		Details: detailStruct,
-	}
+	f := types.NewFile(parts, detailStruct)
 
-	return &f, nil
+	return f, nil
 }
 
-func ConvertToEncryptedFile(workingFile types.File, key []byte, iv []byte) (*types.File, error) {
+func ConvertToEncryptedFile(workingFile *types.File, key []byte, iv []byte) (*types.File, error) {
 	chunkSize := int64(32 * 1024 * 1024)
 
 	jsonDetails, err := json.Marshal(workingFile.Details) // TODO make sure details match json
@@ -109,33 +119,36 @@ func ConvertToEncryptedFile(workingFile types.File, key []byte, iv []byte) (*typ
 		return nil, err
 	}
 
-	encryptedArray := []byte{}
+	var encryptedArray []byte
 
 	b, err := Encrypt(jsonDetails, key, iv)
 	if err != nil {
 		return nil, err
 	}
-	chunkedSize := int64(len(b) + 16)
+	chunkedSize := int64(len(b))
 	sizeData := []byte(fmt.Sprintf("%08d", chunkedSize))
 	encryptedArray = append(encryptedArray, sizeData...)
 	encryptedArray = append(encryptedArray, b...)
 
-	fileBytes := workingFile.Buffer.Bytes()
-	for i := int64(0); i < workingFile.Details.Size; i += chunkSize {
-		end := i + chunkSize
-		s := int64(len(fileBytes))
-		if end >= s {
-			end = s - 1
+	fileBytes := workingFile.Buffer().Bytes()
+	for len(fileBytes) > 0 {
+		l := int64(len(fileBytes))
+		cSize := chunkSize
+		if cSize > l {
+			cSize = l
 		}
-		chunk := fileBytes[i:end]
+
+		chunk := fileBytes[:cSize]
 		enc, err := Encrypt(chunk, key, iv)
 		if err != nil {
 			return nil, err
 		}
-		chunkedSize := int64(len(chunk) + 16)
+		chunkedSize := int64(len(enc))
 		sizeData := []byte(fmt.Sprintf("%08d", chunkedSize))
 		encryptedArray = append(encryptedArray, sizeData...)
 		encryptedArray = append(encryptedArray, enc...)
+
+		fileBytes = fileBytes[cSize:]
 	}
 
 	hexedName := HashAndHex(fmt.Sprintf("%s%d", workingFile.Name(), time.Now().Unix()))
@@ -149,12 +162,9 @@ func ConvertToEncryptedFile(workingFile types.File, key []byte, iv []byte) (*typ
 		LastModified: time.Now(),
 	}
 
-	f := types.File{
-		Buffer:  bytes.NewBuffer(encryptedArray),
-		Details: details,
-	}
+	f := types.NewFile(encryptedArray, details)
 
-	return &f, nil
+	return f, nil
 }
 
 func HashAndHex(input string) string {
@@ -179,7 +189,7 @@ func MerkleMeBro(rawpath string) string {
 	return merkle
 }
 
-func AesToString(wallet types.Wallet, pubKey cryptotypes.PubKey, key []byte, iv []byte) (string, error) {
+func AesToString(wallet types.Wallet, pubKey *ecies.PublicKey, key []byte, iv []byte) (string, error) {
 	theIv, err := wallet.AsymmetricEncrypt(iv, pubKey)
 	if err != nil {
 		return "", err

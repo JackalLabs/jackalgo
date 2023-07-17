@@ -13,12 +13,27 @@ type Details struct {
 }
 
 type File struct {
-	Details Details       `json:"details"`
-	Buffer  *bytes.Buffer `json:"bytes"`
+	Details Details
+	buffer  []byte
+}
+
+func NewFile(data []byte, details Details) *File {
+	f := File{
+		buffer:  data,
+		Details: details,
+	}
+
+	return &f
+}
+
+func (f File) Buffer() *bytes.Buffer {
+	b := make([]byte, len(f.buffer))
+	copy(b, f.buffer)
+	return bytes.NewBuffer(b)
 }
 
 func (f File) Read(p []byte) (n int, err error) {
-	return f.Buffer.Read(p)
+	return f.Buffer().Read(p)
 }
 
 func (f File) Name() string {

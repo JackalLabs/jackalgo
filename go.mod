@@ -6,11 +6,10 @@ require github.com/cosmos/cosmos-sdk v0.45.17
 
 require (
 	github.com/JackalLabs/jackal-provider v1.0.10-beta.1.0.20230626192716-041b1c701abd
-	github.com/daku10/go-lz-string v0.0.5
+	github.com/Lazarus/lz-string-go v0.0.0-20220923232958-c256c46c2022
 	github.com/ecies/go/v2 v2.0.6
 	github.com/google/uuid v1.3.0
 	github.com/jackalLabs/canine-chain/v3 v3.0.0-rc.2
-
 )
 
 require (
@@ -142,6 +141,7 @@ replace (
 	github.com/CosmWasm/wasmd => github.com/CosmosContracts/wasmd v0.29.2-patch.1
 
 	github.com/JackalLabs/jackal-provider => github.com/JackalLabs/canine-provider v1.0.10-beta.1.0.20230626192716-041b1c701abd
+	github.com/Lazarus/lz-string-go => github.com/lazarus/lz-string-go v0.0.0-20220923232958-c256c46c2022
 
 	// dragonberry ics23 patch
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
@@ -162,5 +162,4 @@ replace (
 	// github.com/jackalLabs/canine-chain v1.2.0-alpha.1 => github.com/jackalLabs/canine-chain v1.2.0-alpha.1.0.20221118200331-8b5fcc0a4443
 	// use grpc compatible with cosmos-flavored protobufs
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
-
 )

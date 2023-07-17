@@ -40,7 +40,7 @@ func (f *FileIoHandler) CreateRoot() (msgs sdk.Msg, err error) {
 
 	standard := compression.StandardPerms{
 		BasePerms: base,
-		PubKey:    f.walletHandler.GetPubKey(),
+		PubKey:    f.walletHandler.GetECIESPubKey(),
 		Usr:       f.walletHandler.GetAddress(),
 	}
 
@@ -121,36 +121,48 @@ func (f *FileIoHandler) GenerateInitialDirs(startingDirs []string) (*sdk.TxRespo
 	return f.walletHandler.SendTx(readyToBroadcast...)
 }
 
-func (f *FileIoHandler) StaggeredUploadFiles(sourceFiles []*file_upload_handler.FileUploadHandler, parent *folder_handler.FolderHandler, public bool) error {
+func (f *FileIoHandler) StaggeredUploadFiles(sourceFiles []*file_upload_handler.FileUploadHandler, parent *folder_handler.FolderHandler, public bool) (failedCount int, fids []string, cids []string, err error) {
 	failedFiles := make([]*types.File, 0)
+	fids = make([]string, 0)
+	cids = make([]string, 0)
 
 	count := 0
 	total := 0
 	queue := NewQueue()
-
+	counter := 0
 	for _, file := range sourceFiles {
 		outerFile := file
+		counter++
 		go func() {
-			defer func() { total++ }() // don't do this
-			count++
-
+			fmt.Printf("uploading %s...\n", outerFile.GetWhoAmI())
+			defer func() {
+				total++
+				counter--
+			}() // don't do this
 			innerFile, err := outerFile.GetForUpload(public)
 			if err != nil {
 				failedFiles = append(failedFiles, innerFile)
+				fmt.Printf("getting for upload failed for %s.\n", outerFile.GetWhoAmI())
 				return
 			}
 
 			fid, cid, err := f.tumbleUpload(f.walletHandler.GetAddress(), innerFile)
 			if err != nil {
 				failedFiles = append(failedFiles, innerFile)
+				fmt.Printf("failed to upload %s.\n", outerFile.GetWhoAmI())
 				return
 			}
+			fids = append(fids, fid)
+			cids = append(cids, cid)
 			outerFile.SetIds(cid, []string{fid})
+			fmt.Printf("done uploading %s with fid: %s.\n", outerFile.GetWhoAmI(), fid)
 			queue.Push(outerFile)
+			count++
 		}()
 	}
 
-	for count > 0 {
+	for counter > 0 || count > 0 {
+		fmt.Printf("waiting for files to finish...\n")
 		for i := 0; i < 12; i++ {
 			time.Sleep(5 * time.Second)
 			if total == len(sourceFiles) {
@@ -162,6 +174,8 @@ func (f *FileIoHandler) StaggeredUploadFiles(sourceFiles []*file_upload_handler.
 		handlers := make([]*file_upload_handler.FileUploadHandler, 0)
 		for !queue.Empty() {
 			handler := queue.Pop()
+			fmt.Printf("Handling %s...\n", handler.GetWhoAmI())
+
 			count--
 			handlers = append(handlers, handler)
 
@@ -170,27 +184,35 @@ func (f *FileIoHandler) StaggeredUploadFiles(sourceFiles []*file_upload_handler.
 		}
 		msgs, err := f.signAndPostFiletree(handlers)
 		if err != nil {
-			return err
+			continue
 		}
 
 		msg, err := parent.AddChildFileReferences(metas)
 		if err != nil {
-			return err
+			return len(failedFiles) + failedCount, fids, cids, err
 		}
 
 		msgs = append(msgs, msg)
 
-		_, err = f.walletHandler.SendTx(msgs...)
+		res, err := f.walletHandler.SendTx(msgs...)
 		if err != nil {
-			return nil
+			failedCount += len(handlers)
+		} else {
+			fmt.Println(res.Code)
+			fmt.Println(res.RawLog)
 		}
+
 	}
 
-	return nil
+	return len(failedFiles) + failedCount, fids, cids, nil
 }
 
 func (f *FileIoHandler) signAndPostFiletree(handlers []*file_upload_handler.FileUploadHandler) ([]sdk.Msg, error) {
 	toBroadcast := make([]sdk.Msg, 0)
+
+	if len(handlers) == 0 {
+		return nil, fmt.Errorf("no files to upload")
+	}
 
 	for _, handler := range handlers {
 		cid, fids := handler.GetIds()
@@ -211,7 +233,7 @@ func (f *FileIoHandler) signAndPostFiletree(handlers []*file_upload_handler.File
 				Key:            key,
 				Iv:             iv,
 			},
-			PubKey: f.walletHandler.GetPubKey(),
+			PubKey: f.walletHandler.GetECIESPubKey(),
 			Usr:    f.walletHandler.GetAddress(),
 		}
 		u, p, err := compression.MakePermsBlock("v", perms, f.walletHandler)

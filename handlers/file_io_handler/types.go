@@ -24,16 +24,24 @@ type FileIoHandler struct {
 	providers     []storagetypes.Providers
 }
 
-func NewFileIoHandler(w *wallet_handler.WalletHandler) *FileIoHandler {
-	f := FileIoHandler{
-		walletHandler: w,
+func NewFileIoHandler(w *wallet_handler.WalletHandler) (*FileIoHandler, error) {
+	provs, err := fetchProviders(w)
+	if err != nil {
+		return nil, err
 	}
 
-	return &f
+	provs = sanitizeProviders(provs, w.GetChainID())
+
+	f := FileIoHandler{
+		walletHandler: w,
+		providers:     provs,
+	}
+
+	return &f, nil
 }
 
 func (f *FileIoHandler) tumbleUpload(sender string, file *types.File) (fid string, cid string, err error) {
-	var randProvs []storagetypes.Providers
+	randProvs := make([]storagetypes.Providers, len(f.providers))
 	copy(randProvs, f.providers)
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -48,10 +56,15 @@ func (f *FileIoHandler) tumbleUpload(sender string, file *types.File) (fid strin
 
 		uploadUrl := newUrl.JoinPath("upload")
 
+		fmt.Printf("Doing upload to %s...\n", uploadUrl)
+
 		fid, cid, err := doUpload(uploadUrl, sender, file)
 		if err == nil {
-			return fid, cid, err
+			return fid, cid, nil
 		}
+		fmt.Println(err)
+		fmt.Printf("Failed upload to %s.\n", uploadUrl)
+
 	}
 
 	return "", "", fmt.Errorf("failed to upload to any providers")
@@ -71,25 +84,35 @@ func doUpload(url *url2.URL, sender string, file *types.File) (fid string, cid s
 	if err != nil {
 		return
 	}
-	// copy the file into the fileWriter
-	_, err = io.Copy(fileWriter, file)
+
+	size, err := io.Copy(fileWriter, file.Buffer())
 	if err != nil {
 		return
 	}
-
+	fmt.Printf("Posting file of size: %d\n", size)
+	err = writer.Close()
+	if err != nil {
+		return
+	}
 	req, err := http.NewRequest("POST", url.String(), &b)
 	if err != nil {
 		return
 	}
 
-	cli := &http.Client{Timeout: time.Second * 100}
+	cli := &http.Client{Timeout: 60 * time.Second}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	res, err := cli.Do(req)
 	if err != nil {
 		return
 	}
+
 	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("failed with code: %d", res.StatusCode)
+		var errRes provider.ErrorResponse
+		err = json.NewDecoder(res.Body).Decode(&errRes)
+		if err != nil {
+			return
+		}
+		err = fmt.Errorf("code: %d -> %s", res.StatusCode, errRes.Error)
 		return
 	}
 
@@ -99,24 +122,68 @@ func doUpload(url *url2.URL, sender string, file *types.File) (fid string, cid s
 		return
 	}
 
+	err = res.Body.Close()
+	if err != nil {
+		return
+	}
+
 	return pup.FID, pup.CID, nil
+}
+
+func doDownload(url *url2.URL, fid string) ([]byte, error) {
+	newUrl := url.JoinPath("download", fid)
+
+	fmt.Printf("downloading file from %s\n", newUrl.String())
+
+	req, err := http.NewRequest("GET", newUrl.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	cli := &http.Client{Timeout: 0}
+
+	res, err := cli.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		var errRes provider.ErrorResponse
+		err = json.NewDecoder(res.Body).Decode(&errRes)
+		if err != nil {
+			return nil, err
+		}
+		err = fmt.Errorf("code: %d -> %s", res.StatusCode, errRes.Error)
+		return nil, err
+	}
+
+	var n bytes.Buffer
+	_, err = io.Copy(&n, res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = res.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return n.Bytes(), nil
 }
 
 type Queue struct {
 	details []*file_upload_handler.FileUploadHandler
-	count   int
 }
 
 func NewQueue() *Queue {
 	q := Queue{
 		details: make([]*file_upload_handler.FileUploadHandler, 0),
-		count:   0,
 	}
 	return &q
 }
 
 func (q *Queue) Push(f *file_upload_handler.FileUploadHandler) {
-	q.details[q.count] = f
+	q.details = append(q.details, f)
 }
 
 func (q *Queue) Pop() *file_upload_handler.FileUploadHandler {

@@ -1,0 +1,35 @@
+contract {
+	var maxSupply number
+	var currentSupply number
+	var tokens []token
+	var priceToMint number
+
+	func getToken(tokenId number) token {
+		if tokenId >= currentSupply || tokenId < 0 {
+			throw("cannot query a token that doesn't exist")
+		}
+		return tokens[tokenId]
+	}
+	message mint(amount number) bool {
+		if currentSupply + amount >= maxSupply {
+			throw("cannot mint more than the max supply")
+		}
+		for var i number = 0; i < amount; i ++ {
+			tokens[currentSupply] = token{
+				owner: msg.sender,
+				metadata: "{}",
+			}
+			currentSupply ++
+		}
+		BANK.acceptTokens(`${number * amount}denom`)
+		return true
+	}
+
+	query owner(tokenId number) string {
+		return getToken(tokenId).owner
+	}
+}
+struct token {
+	var owner string
+	var metadata string
+}

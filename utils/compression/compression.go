@@ -3,11 +3,10 @@ package compression
 import (
 	"encoding/json"
 	"fmt"
-	"unicode/utf16"
 
 	"github.com/JackalLabs/jackalgo/types"
 	"github.com/JackalLabs/jackalgo/utils"
-	lzstring "github.com/daku10/go-lz-string"
+	lzstring "github.com/Lazarus/lz-string-go"
 	filetreetypes "github.com/jackalLabs/canine-chain/v3/x/filetree/types"
 
 	"github.com/JackalLabs/jackalgo/utils/crypt"
@@ -52,7 +51,7 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 		Key:            key,
 	}
 
-	selfPubKey := walletRef.GetPubKey()
+	selfPubKey := walletRef.GetECIESPubKey()
 	me := StandardPerms{
 		BasePerms: perms,
 		PubKey:    selfPubKey,
@@ -158,17 +157,14 @@ func MakePermsBlock(base string, standardPerms StandardPerms, walletRef types.Wa
 }
 
 func CompressData(input string) (string, error) {
-	k, err := lzstring.Compress(input)
-	if err != nil {
-		return "", err
-	}
-	s := string(utf16.Decode(k))
-	return fmt.Sprintf("jklpc1%s", s), nil
+	k := lzstring.Compress(input, "")
+
+	return fmt.Sprintf("jklpc1%s", k), nil
 }
 
 func DecompressData(input string) (string, error) {
-	s := utf16.Encode([]rune(input))
-	return lzstring.Decompress(s)
+	input = input[6:]
+	return lzstring.Decompress(input, "")
 }
 
 func CompressEncryptString(input string, key []byte, iv []byte) (string, error) {

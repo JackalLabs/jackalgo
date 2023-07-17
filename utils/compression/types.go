@@ -1,7 +1,7 @@
 package compression
 
 import (
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	ecies "github.com/ecies/go/v2"
 )
 
 type MsgPartialPostFileBundle struct {
@@ -22,7 +22,7 @@ type BasePerms struct {
 
 type StandardPerms struct {
 	BasePerms BasePerms
-	PubKey    cryptotypes.PubKey
+	PubKey    *ecies.PublicKey
 	Usr       string
 }
 

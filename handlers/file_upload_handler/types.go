@@ -2,6 +2,8 @@ package file_upload_handler
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"os"
 
 	"github.com/JackalLabs/jackalgo/types"
@@ -10,7 +12,7 @@ import (
 )
 
 type FileUploadHandler struct {
-	File       types.File
+	File       *types.File
 	parentPath string
 	uuid       string
 	key        []byte
@@ -19,7 +21,7 @@ type FileUploadHandler struct {
 	fid        []string
 }
 
-func NewFileUploadHandler(file os.File, parentPath string, uuid string, savedKey []byte, savedIv []byte) (*FileUploadHandler, error) {
+func NewFileUploadHandler(file *os.File, parentPath string, uuid string, savedKey []byte, savedIv []byte) (*FileUploadHandler, error) {
 	fileDetails, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -31,17 +33,15 @@ func NewFileUploadHandler(file os.File, parentPath string, uuid string, savedKey
 		FileType:     file.Name(),
 		Size:         fileDetails.Size(),
 	}
-
-	b := bytes.NewBuffer([]byte{})
-	_, err = b.ReadFrom(&file)
+	var b bytes.Buffer
+	size, err := io.Copy(&b, file)
 	if err != nil {
 		return nil, err
 	}
 
-	newFile := types.File{
-		Buffer:  b,
-		Details: details,
-	}
+	fmt.Printf("Loading in %d bytes\n", size)
+
+	newFile := types.NewFile(b.Bytes(), details)
 
 	f := FileUploadHandler{
 		File:       newFile,
@@ -56,7 +56,7 @@ func NewFileUploadHandler(file os.File, parentPath string, uuid string, savedKey
 	return &f, nil
 }
 
-func TrackFile(file os.File, parentPath string) (*FileUploadHandler, error) {
+func TrackFile(file *os.File, parentPath string) (*FileUploadHandler, error) {
 	savedKey := crypt.GenKey()
 	savedIv := crypt.GenIv()
 	uuid := uuid.New().String()
@@ -91,7 +91,7 @@ func (f *FileUploadHandler) GetWhereAmI() string {
 
 func (f *FileUploadHandler) GetForUpload(public bool) (*types.File, error) {
 	if public {
-		return &f.File, nil
+		return f.File, nil
 	}
 
 	return crypt.ConvertToEncryptedFile(f.File, f.key, f.iv)

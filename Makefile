@@ -13,4 +13,7 @@ format: format-tools
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs goimports -w -local github.com/jackalLabs/jackalgo
 
 
+test:
+	@VERSION=$(VERSION) go test -short -mod=readonly -tags='ledger test_ledger_mock' ./...
+
 .PHONY: lint format format-tools

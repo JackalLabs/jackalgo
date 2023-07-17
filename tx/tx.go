@@ -7,7 +7,7 @@ import (
 	"github.com/JackalLabs/jackalgo/crypto"
 	"github.com/cosmos/cosmos-sdk/client"
 	txns "github.com/cosmos/cosmos-sdk/client/tx"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
@@ -44,7 +44,7 @@ func prepareFactory(clientCtx client.Context, txf txns.Factory, address string) 
 	return txf, nil
 }
 
-func SendTx(clientCtx client.Context, flagSet *pflag.FlagSet, key *secp256k1.PrivKey, address string, msgs ...sdk.Msg) (*sdk.TxResponse, error) {
+func SendTx(clientCtx client.Context, flagSet *pflag.FlagSet, key cryptotypes.PrivKey, address string, msgs ...sdk.Msg) (*sdk.TxResponse, error) {
 	txf := txns.NewFactoryCLI(clientCtx, flagSet)
 	txf, err := prepareFactory(clientCtx, txf, address)
 	if err != nil {
@@ -90,7 +90,7 @@ func SendTx(clientCtx client.Context, flagSet *pflag.FlagSet, key *secp256k1.Pri
 	return res, err
 }
 
-func sign(txf txns.Factory, clientCtx client.Context, txBuilder client.TxBuilder, key *secp256k1.PrivKey, overwriteSig bool) error {
+func sign(txf txns.Factory, clientCtx client.Context, txBuilder client.TxBuilder, key cryptotypes.PrivKey, overwriteSig bool) error {
 	signMode := txf.SignMode()
 	if signMode == signing.SignMode_SIGN_MODE_UNSPECIFIED {
 		// use the SignModeHandler's default mode if unspecified

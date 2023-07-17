@@ -1,10 +1,9 @@
 package wallet_handler
 
 import (
-	"context"
+	"fmt"
 	"os"
 
-	"github.com/JackalLabs/jackalgo/utils"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -12,9 +11,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	"github.com/cosmos/cosmos-sdk/types/bech32"
 	ecies "github.com/ecies/go/v2"
 	"github.com/spf13/pflag"
 )
@@ -45,6 +44,18 @@ type WalletHandler struct {
 
 func DefaultWalletHandler(seedPhrase string) (*WalletHandler, error) {
 	return NewWalletHandler(seedPhrase, "https://rpc.jackalprotocol.com:443", "jackal-1")
+}
+
+func createFlags(gas string, address string) *pflag.FlagSet {
+	flagSet := pflag.NewFlagSet("jackalgo-flags", pflag.PanicOnError)
+
+	AddTxFlags(flagSet)
+	// --gas can accept integers and "auto"
+	flagSet.String(flags.FlagGas, gas, fmt.Sprintf("gas limit to set per-transaction; set to %q to calculate sufficient gas automatically (default %d)", flags.GasFlagAuto, flags.DefaultGasLimit))
+
+	flagSet.String(flags.FlagFrom, address, "Name or address of private key with which to sign")
+
+	return flagSet
 }
 
 func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHandler, error) {
@@ -90,18 +101,6 @@ func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHan
 		WithClient(cl).
 		WithChainID(chainId)
 
-	srvCtx := utils.NewDefaultContext()
-
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, client.ClientContextKey, clientCtx)
-	ctx = context.WithValue(ctx, utils.JackalGoContextKey, srvCtx)
-
-	flagSet := pflag.NewFlagSet("jackalgo-flags", pflag.PanicOnError)
-
-	AddTxFlagsToCmd(flagSet)
-
-	flagSet.String(flags.FlagFrom, address, "Name or address of private key with which to sign")
-
 	newpkey, err := pKey.Sign([]byte("Initiate Jackal Session"))
 	if err != nil {
 		return nil, err
@@ -109,13 +108,28 @@ func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHan
 
 	eciesKey := ecies.NewPrivateKeyFromBytes(newpkey[:32])
 
+	flags := createFlags("auto", address)
+
 	w := WalletHandler{
 		clientCtx: clientCtx,
-		flags:     flagSet,
+		flags:     flags,
 		key:       pKey,
 		address:   address,
 		eciesKey:  eciesKey,
 	}
 
 	return &w, nil
+}
+
+func (w *WalletHandler) WithGas(gas string) *WalletHandler {
+	flgs := createFlags(gas, w.address)
+
+	newWallet := WalletHandler{
+		clientCtx: w.clientCtx,
+		flags:     flgs,
+		key:       w.key,
+		address:   w.address,
+		eciesKey:  w.eciesKey,
+	}
+	return &newWallet
 }
