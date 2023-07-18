@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/JackalLabs/jackalgo/types"
 	"github.com/JackalLabs/jackalgo/utils/crypt"
@@ -62,6 +63,33 @@ func TrackFile(file *os.File, parentPath string) (*FileUploadHandler, error) {
 	uuid := uuid.New().String()
 
 	return NewFileUploadHandler(file, parentPath, uuid, savedKey, savedIv)
+}
+
+func TrackVirtualFile(bytes []byte, fileName string, parentPath string) (*FileUploadHandler, error) {
+	savedKey := crypt.GenKey()
+	savedIv := crypt.GenIv()
+	uuid := uuid.New().String()
+
+	details := types.Details{
+		Name:         fileName,
+		LastModified: time.Now(),
+		FileType:     "virtual",
+		Size:         int64(len(bytes)),
+	}
+
+	newFile := types.NewFile(bytes, details)
+
+	f := FileUploadHandler{
+		File:       newFile,
+		parentPath: parentPath,
+		uuid:       uuid,
+		key:        savedKey,
+		iv:         savedIv,
+		cid:        "",
+		fid:        make([]string, 0),
+	}
+
+	return &f, nil
 }
 
 func (f *FileUploadHandler) SetIds(cid string, fid []string) {
