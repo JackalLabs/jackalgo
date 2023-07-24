@@ -12,6 +12,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const GoVirtual = "govirtual"
+
 type FileUploadHandler struct {
 	File       *types.File
 	parentPath string
@@ -31,7 +33,7 @@ func NewFileUploadHandler(file *os.File, parentPath string, uuid string, savedKe
 	details := types.Details{
 		Name:         file.Name(),
 		LastModified: fileDetails.ModTime(),
-		FileType:     file.Name(),
+		FileType:     GoVirtual,
 		Size:         fileDetails.Size(),
 	}
 	var b bytes.Buffer
@@ -73,7 +75,7 @@ func TrackVirtualFile(bytes []byte, fileName string, parentPath string) (*FileUp
 	details := types.Details{
 		Name:         fileName,
 		LastModified: time.Now(),
-		FileType:     "virtual",
+		FileType:     GoVirtual,
 		Size:         int64(len(bytes)),
 	}
 
