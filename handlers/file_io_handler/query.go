@@ -23,8 +23,8 @@ import (
 	storagetypes "github.com/jackalLabs/canine-chain/v3/x/storage/types"
 )
 
-func (f *FileIoHandler) DownloadFolder(rawPath string) (folderHandler *folder_handler.FolderHandler, err error) {
-	rawFolder, err := compression.ReadFileTreeEntry(f.walletHandler.GetAddress(), rawPath, f.walletHandler)
+func (f *FileIoHandler) DownloadFolder(rawPath string, owner string) (folderHandler *folder_handler.FolderHandler, err error) {
+	rawFolder, err := compression.ReadFileTreeEntry(owner, rawPath, f.walletHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +38,8 @@ func (f *FileIoHandler) DownloadFolder(rawPath string) (folderHandler *folder_ha
 	return folder_handler.TrackFolder(frame, f.walletHandler), nil
 }
 
-func (f *FileIoHandler) DownloadFile(rawPath string) (fileHandler *file_download_handler.FileDownloadHandler, err error) {
-	res, err := utils.GetFileTreeData(rawPath, f.walletHandler.GetAddress(), f.walletHandler)
+func (f *FileIoHandler) DownloadFile(rawPath string, owner string) (fileHandler *file_download_handler.FileDownloadHandler, err error) {
+	res, err := utils.GetFileTreeData(rawPath, owner, f.walletHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -60,9 +60,11 @@ func (f *FileIoHandler) DownloadFile(rawPath string) (fileHandler *file_download
 
 	fmt.Println(realPerms)
 
+	public := false
+
 	iv, key, err := crypt.StringToAes(f.walletHandler, realPerms)
 	if err != nil {
-		return nil, err
+		public = true
 	}
 
 	contents := res.Files.Contents
@@ -108,6 +110,16 @@ func (f *FileIoHandler) DownloadFile(rawPath string) (fileHandler *file_download
 		if err != nil {
 			fmt.Println(err)
 			continue
+		}
+
+		if public {
+			handler, err := file_download_handler.TrackFile(bytes, key, iv)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			return handler, nil
 		}
 
 		handler, err := file_download_handler.TrackFile(bytes, key, iv)

@@ -20,6 +20,12 @@ func TestFileUpload(t *testing.T) {
 		"lupulella-2")
 	r.NoError(err)
 
+	queryWallet, err := wallet_handler.NewWalletHandler(
+		"",
+		"https://jackal-testnet-rpc.polkachu.com:443",
+		"lupulella-2")
+	r.NoError(err)
+
 	fmt.Println(wallet.GetAddress())
 
 	fileIO, err := file_io_handler.NewFileIoHandler(wallet.WithGas("500000"))
@@ -28,20 +34,27 @@ func TestFileUpload(t *testing.T) {
 	fileData, err := os.Open("test_data.txt")
 	r.NoError(err)
 
-	res, err := fileIO.GenerateInitialDirs([]string{"jackalgo"})
+	res, err := fileIO.GenerateInitialDirs([]string{"jackalgo"}, true)
 	r.NoError(err)
+
+	fmt.Println(res.RawLog)
 
 	r.Equal(uint32(0), res.Code)
 
-	folder, err := fileIO.DownloadFolder("s/jackalgo")
+	fileIOQueryOnly, err := file_io_handler.NewFileIoHandler(queryWallet)
 	r.NoError(err)
+
+	folder, err := fileIOQueryOnly.DownloadFolder("s/jackalgo", wallet.GetAddress())
+	r.NoError(err)
+
+	fmt.Println(folder.GetChildFiles())
 
 	file, err := file_upload_handler.TrackFile(fileData, "s/jackalgo")
 	r.NoError(err)
 
 	r.Equal("test_data.txt", file.GetWhoAmI())
 
-	failed, fids, cids, err := fileIO.StaggeredUploadFiles([]*file_upload_handler.FileUploadHandler{file}, folder, false)
+	failed, fids, cids, err := fileIO.StaggeredUploadFiles([]*file_upload_handler.FileUploadHandler{file}, folder, true)
 	r.NoError(err)
 
 	fmt.Println(fids)
@@ -49,13 +62,13 @@ func TestFileUpload(t *testing.T) {
 
 	r.Equal(0, failed)
 
-	folder, err = fileIO.DownloadFolder("s/jackalgo")
+	folder, err = fileIOQueryOnly.DownloadFolder("s/jackalgo", wallet.GetAddress())
 	r.NoError(err)
 
 	children := folder.GetChildFiles()
 	fmt.Println(children)
 
-	f, err := fileIO.DownloadFile("s/jackalgo/test_data.txt")
+	f, err := fileIOQueryOnly.DownloadFile("s/jackalgo/test_data.txt", wallet.GetAddress())
 	r.NoError(err)
 
 	fmt.Println(f.File.Details)

@@ -19,6 +19,8 @@ import (
 	storagetypes "github.com/jackalLabs/canine-chain/v3/x/storage/types"
 )
 
+const JackalGoVersion = 1
+
 type FileIoHandler struct {
 	walletHandler *wallet_handler.WalletHandler
 	providers     []storagetypes.Providers
@@ -59,7 +61,7 @@ func (f *FileIoHandler) tumbleUpload(sender string, file *types.File) (fid strin
 		fmt.Printf("Doing upload to %s...\n", uploadUrl)
 
 		fid, cid, err := doUpload(uploadUrl, sender, file)
-		if err == nil {
+		if err == nil || len(fid) == 0 {
 			return fid, cid, nil
 		}
 		fmt.Println(err)
@@ -198,5 +200,6 @@ func (q *Queue) Empty() bool {
 }
 
 type Fids struct {
-	Fids []string `json:"fids"`
+	Fids            []string `json:"fids"`
+	JackalGoVersion int      `json:"jackal_go_version"`
 }

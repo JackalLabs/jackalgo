@@ -23,13 +23,13 @@ func TestDashboardCompat(t *testing.T) {
 	fileIO, err := file_io_handler.NewFileIoHandler(wallet.WithGas("500000"))
 	r.NoError(err)
 
-	folder, err := fileIO.DownloadFolder("s/Home")
+	folder, err := fileIO.DownloadFolder("s/Home", wallet.GetAddress())
 	r.NoError(err)
 
 	children := folder.GetChildFiles()
 	fmt.Println(children)
 
-	f, err := fileIO.DownloadFile("s/Home/test_data.txt")
+	f, err := fileIO.DownloadFile("s/Home/test_data.txt", wallet.GetAddress())
 	r.NoError(err)
 
 	fmt.Println(f.File.Details)

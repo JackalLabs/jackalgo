@@ -74,15 +74,15 @@ func (f *FolderHandler) GetChildFiles() FolderChildFiles {
 	return f.folderDetails.FileChildren
 }
 
-func (f *FolderHandler) GetForFiletree() (sdk.Msg, error) {
-	return compression.SaveFiletreeEntry(f.walletHandler.GetAddress(), f.GetWhereAmI(), f.GetWhoAmI(), f.folderDetails, f.walletHandler)
+func (f *FolderHandler) GetForFiletree(public bool) (sdk.Msg, error) {
+	return compression.SaveFiletreeEntry(f.walletHandler.GetAddress(), f.GetWhereAmI(), f.GetWhoAmI(), f.folderDetails, f.walletHandler, public)
 }
 
 func (f *FolderHandler) GetChildMerkle(child string) string {
 	return crypt.MerkleMeBro(fmt.Sprintf("%s/%s/%s", f.GetWhereAmI(), f.GetWhoAmI(), child))
 }
 
-func (f *FolderHandler) AddChildDirs(childNames []string) ([]sdk.Msg, []string, error) {
+func (f *FolderHandler) AddChildDirs(childNames []string, public bool) ([]sdk.Msg, []string, error) {
 	existing := make([]string, 0)
 	more := make([]string, 0)
 
@@ -100,7 +100,7 @@ func (f *FolderHandler) AddChildDirs(childNames []string) ([]sdk.Msg, []string, 
 	for i, moreName := range more {
 		myName, myPath, myOwner := f.MakeChildDirInfo(moreName)
 		tracker := TrackNewFolder(myName, myPath, myOwner, f.walletHandler)
-		ftree, err := tracker.GetForFiletree()
+		ftree, err := tracker.GetForFiletree(public)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -122,7 +122,7 @@ func (f *FolderHandler) AddChildDirs(childNames []string) ([]sdk.Msg, []string, 
 		}
 
 		f.folderDetails.DirChildren = children
-		filetreeMsg, err := f.GetForFiletree()
+		filetreeMsg, err := f.GetForFiletree(public)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -132,15 +132,15 @@ func (f *FolderHandler) AddChildDirs(childNames []string) ([]sdk.Msg, []string, 
 	return msgs, existing, nil
 }
 
-func (f *FolderHandler) AddChildFileReferences(newFiles FolderChildFiles) (sdk.Msg, error) {
+func (f *FolderHandler) AddChildFileReferences(newFiles FolderChildFiles, public bool) (sdk.Msg, error) {
 	for key, value := range newFiles {
 		f.folderDetails.FileChildren[key] = value
 	}
 
-	return f.GetForFiletree()
+	return f.GetForFiletree(public)
 }
 
-func (f *FolderHandler) RemoveChildDirReferences(toRemove []string) (sdk.Msg, error) {
+func (f *FolderHandler) RemoveChildDirReferences(toRemove []string, public bool) (sdk.Msg, error) {
 	filtered := make([]string, 0)
 	for _, child := range f.folderDetails.DirChildren {
 		needsRemoved := false
@@ -157,15 +157,15 @@ func (f *FolderHandler) RemoveChildDirReferences(toRemove []string) (sdk.Msg, er
 
 	f.folderDetails.DirChildren = filtered
 
-	return f.GetForFiletree()
+	return f.GetForFiletree(public)
 }
 
-func (f *FolderHandler) RemoveChildFileReferences(toRemove []string) (sdk.Msg, error) {
+func (f *FolderHandler) RemoveChildFileReferences(toRemove []string, public bool) (sdk.Msg, error) {
 	for _, removing := range toRemove {
 		delete(f.folderDetails.FileChildren, removing)
 	}
 
-	return f.GetForFiletree()
+	return f.GetForFiletree(public)
 }
 
 func (f *FolderHandler) MakeChildDirInfo(childName string) (myName string, myParent string, myOwner string) {

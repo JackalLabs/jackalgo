@@ -22,9 +22,10 @@ type FileUploadHandler struct {
 	iv         []byte
 	cid        string
 	fid        []string
+	public     bool
 }
 
-func NewFileUploadHandler(file *os.File, parentPath string, uuid string, savedKey []byte, savedIv []byte) (*FileUploadHandler, error) {
+func NewFileUploadHandler(file *os.File, parentPath string, uuid string, savedKey []byte, savedIv []byte, public bool) (*FileUploadHandler, error) {
 	fileDetails, err := file.Stat()
 	if err != nil {
 		return nil, err
@@ -54,20 +55,21 @@ func NewFileUploadHandler(file *os.File, parentPath string, uuid string, savedKe
 		iv:         savedIv,
 		cid:        "",
 		fid:        make([]string, 0),
+		public:     public,
 	}
 
 	return &f, nil
 }
 
-func TrackFile(file *os.File, parentPath string) (*FileUploadHandler, error) {
+func TrackFile(file *os.File, parentPath string, public bool) (*FileUploadHandler, error) {
 	savedKey := crypt.GenKey()
 	savedIv := crypt.GenIv()
 	uuid := uuid.New().String()
 
-	return NewFileUploadHandler(file, parentPath, uuid, savedKey, savedIv)
+	return NewFileUploadHandler(file, parentPath, uuid, savedKey, savedIv, public)
 }
 
-func TrackVirtualFile(bytes []byte, fileName string, parentPath string) (*FileUploadHandler, error) {
+func TrackVirtualFile(bytes []byte, fileName string, parentPath string, public bool) (*FileUploadHandler, error) {
 	savedKey := crypt.GenKey()
 	savedIv := crypt.GenIv()
 	uuid := uuid.New().String()
@@ -89,6 +91,7 @@ func TrackVirtualFile(bytes []byte, fileName string, parentPath string) (*FileUp
 		iv:         savedIv,
 		cid:        "",
 		fid:        make([]string, 0),
+		public:     public,
 	}
 
 	return &f, nil

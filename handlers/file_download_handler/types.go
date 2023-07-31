@@ -25,6 +25,14 @@ func TrackFile(file []byte, key []byte, iv []byte) (*FileDownloadHandler, error)
 	return NewFileDownloadHandler(decryptedFile), nil
 }
 
+//func TrackPublicFile(file []byte) (*FileDownloadHandler, error) {
+//	convertedFile, err := crypt.ConvertFromPublicFile(file)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return NewFileDownloadHandler(convertedFile), nil
+//}
+
 func (f *FileDownloadHandler) GetFile() *types.File {
 	return f.File
 }

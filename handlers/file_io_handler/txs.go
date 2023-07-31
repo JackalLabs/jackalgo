@@ -18,8 +18,8 @@ import (
 	storagetypes "github.com/jackalLabs/canine-chain/v3/x/storage/types"
 )
 
-func (f *FileIoHandler) CreateFolders(parentDir *folder_handler.FolderHandler, newDirs []string) (msgs []sdk.Msg, err error) {
-	msgs, existing, err := parentDir.AddChildDirs(newDirs)
+func (f *FileIoHandler) CreateFolders(parentDir *folder_handler.FolderHandler, newDirs []string, public bool) (msgs []sdk.Msg, err error) {
+	msgs, existing, err := parentDir.AddChildDirs(newDirs, public)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (f *FileIoHandler) CreateRoot() (msgs sdk.Msg, err error) {
 	}, nil
 }
 
-func (f *FileIoHandler) GenerateInitialDirs(startingDirs []string) (*sdk.TxResponse, error) {
+func (f *FileIoHandler) GenerateInitialDirs(startingDirs []string, public bool) (*sdk.TxResponse, error) {
 	toGenerate := startingDirs
 	if len(toGenerate) == 0 {
 		toGenerate = []string{"Config", "Home", "WWW"}
@@ -87,7 +87,7 @@ func (f *FileIoHandler) GenerateInitialDirs(startingDirs []string) (*sdk.TxRespo
 	dirMsgs := make([]sdk.Msg, len(toGenerate))
 	for i, generation := range toGenerate {
 		handler := folder_handler.TrackNewFolder(generation, "s", creator, f.walletHandler)
-		msg, err := handler.GetForFiletree()
+		msg, err := handler.GetForFiletree(public)
 		if err != nil {
 			return nil, err
 		}
@@ -187,7 +187,7 @@ func (f *FileIoHandler) StaggeredUploadFiles(sourceFiles []*file_upload_handler.
 			continue
 		}
 
-		msg, err := parent.AddChildFileReferences(metas)
+		msg, err := parent.AddChildFileReferences(metas, public)
 		if err != nil {
 			return len(failedFiles) + failedCount, fids, cids, err
 		}
@@ -218,7 +218,8 @@ func (f *FileIoHandler) signAndPostFiletree(handlers []*file_upload_handler.File
 		cid, fids := handler.GetIds()
 
 		fs := Fids{
-			Fids: fids,
+			Fids:            fids,
+			JackalGoVersion: JackalGoVersion,
 		}
 
 		fidJson, err := json.Marshal(fs)

@@ -58,6 +58,15 @@ func createFlags(gas string, address string) *pflag.FlagSet {
 	return flagSet
 }
 
+func init() {
+	cfg := sdk.GetConfig()
+	cfg.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
+	cfg.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
+	cfg.SetBech32PrefixForConsensusNode(Bech32PrefixConsAddr, Bech32PrefixConsPub)
+	// cfg.SetAddressVerifier(wasmtypes.VerifyAddressLen())
+	cfg.Seal()
+}
+
 func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHandler, error) {
 	encodingConfig := params.MakeTestEncodingConfig()
 	std.RegisterLegacyAminoCodec(encodingConfig.Amino)
@@ -65,14 +74,8 @@ func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHan
 	simapp.ModuleBasics.RegisterLegacyAminoCodec(encodingConfig.Amino)
 	simapp.ModuleBasics.RegisterInterfaces(encodingConfig.InterfaceRegistry)
 
-	cfg := sdk.GetConfig()
-	cfg.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
-	cfg.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
-	cfg.SetBech32PrefixForConsensusNode(Bech32PrefixConsAddr, Bech32PrefixConsPub)
-	// cfg.SetAddressVerifier(wasmtypes.VerifyAddressLen())
-	cfg.Seal()
-
 	var pKey *cryptotypes.PrivKey = nil
+	var eciesKey *ecies.PrivateKey = nil
 	address := ""
 	if len(seedPhrase) > 0 {
 		pKey = cryptotypes.GenPrivKeyFromSecret([]byte(seedPhrase))
@@ -81,6 +84,14 @@ func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHan
 		if err != nil {
 			return nil, err
 		}
+
+		newpkey, err := pKey.Sign([]byte("Initiate Jackal Session"))
+		if err != nil {
+			return nil, err
+		}
+
+		eciesKey = ecies.NewPrivateKeyFromBytes(newpkey[:32])
+
 	}
 
 	cl, err := client.NewClientFromNode(rpc)
@@ -100,13 +111,6 @@ func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHan
 		WithNodeURI(rpc).
 		WithClient(cl).
 		WithChainID(chainId)
-
-	newpkey, err := pKey.Sign([]byte("Initiate Jackal Session"))
-	if err != nil {
-		return nil, err
-	}
-
-	eciesKey := ecies.NewPrivateKeyFromBytes(newpkey[:32])
 
 	flags := createFlags("auto", address)
 

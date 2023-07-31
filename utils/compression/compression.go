@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawContents any, walletRef types.Wallet) (sdk.Msg, error) {
+func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawContents any, walletRef types.Wallet, public bool) (sdk.Msg, error) {
 	creator := walletRef.GetAddress()
 	account := crypt.HashAndHex(creator)
 
@@ -28,90 +28,94 @@ func SaveFiletreeEntry(toAddress string, rawPath string, rawTarget string, rawCo
 		HashParent:     crypt.MerkleMeBro(rawPath),
 		HashChild:      crypt.HashAndHex(rawTarget),
 		TrackingNumber: uuid.New().String(),
-		Editors:        "",
-		Viewers:        "",
+		Editors:        "{}",
+		Viewers:        "{}",
 	}
 	jsonContents, err := json.Marshal(rawContents)
 	if err != nil {
 		return nil, err
 	}
 
-	msg.Contents, err = CompressEncryptString(
-		string(jsonContents),
-		key,
-		iv,
-	)
-	if err != nil {
-		return nil, err
-	}
+	if public {
+		msg.Contents = string(jsonContents)
+	} else {
+		msg.Contents, err = CompressEncryptString(
+			string(jsonContents),
+			key,
+			iv,
+		)
+		if err != nil {
+			return nil, err
+		}
 
-	perms := BasePerms{
-		TrackingNumber: msg.TrackingNumber,
-		Iv:             iv,
-		Key:            key,
-	}
+		perms := BasePerms{
+			TrackingNumber: msg.TrackingNumber,
+			Iv:             iv,
+			Key:            key,
+		}
 
-	selfPubKey := walletRef.GetECIESPubKey()
-	me := StandardPerms{
-		BasePerms: perms,
-		PubKey:    selfPubKey,
-		Usr:       creator,
-	}
+		selfPubKey := walletRef.GetECIESPubKey()
+		me := StandardPerms{
+			BasePerms: perms,
+			PubKey:    selfPubKey,
+			Usr:       creator,
+		}
 
-	ukey, uivkey, err := MakePermsBlock("e", me, walletRef)
-	if err != nil {
-		return nil, err
-	}
-	ev := make(EditorsViewers, 0)
-	ev[ukey] = uivkey
-
-	editors, err := json.Marshal(ev)
-	if err != nil {
-		return nil, err
-	}
-	msg.Editors = string(editors)
-
-	if toAddress == creator {
-		ukey, uivkey, err := MakePermsBlock("v", me, walletRef)
+		ukey, uivkey, err := MakePermsBlock("e", me, walletRef)
 		if err != nil {
 			return nil, err
 		}
 		ev := make(EditorsViewers, 0)
 		ev[ukey] = uivkey
-		viewers, err := json.Marshal(ev)
-		if err != nil {
-			return nil, err
-		}
-		msg.Viewers = string(viewers)
 
-	} else {
-		destPubKey, err := walletRef.FindPubKey(toAddress)
+		editors, err := json.Marshal(ev)
 		if err != nil {
 			return nil, err
 		}
-		them := StandardPerms{
-			BasePerms: perms,
-			PubKey:    destPubKey,
-			Usr:       toAddress,
-		}
+		msg.Editors = string(editors)
 
-		ev := make(EditorsViewers, 0)
-		r1key, r1ivkey, err := MakePermsBlock("v", me, walletRef)
-		if err != nil {
-			return nil, err
-		}
-		r2key, r2ivkey, err := MakePermsBlock("v", them, walletRef)
-		if err != nil {
-			return nil, err
-		}
-		ev[r1key] = r1ivkey
-		ev[r2key] = r2ivkey
+		if toAddress == creator {
+			ukey, uivkey, err := MakePermsBlock("v", me, walletRef)
+			if err != nil {
+				return nil, err
+			}
+			ev := make(EditorsViewers, 0)
+			ev[ukey] = uivkey
+			viewers, err := json.Marshal(ev)
+			if err != nil {
+				return nil, err
+			}
+			msg.Viewers = string(viewers)
 
-		viewers, err := json.Marshal(ev)
-		if err != nil {
-			return nil, err
+		} else {
+			destPubKey, err := walletRef.FindPubKey(toAddress)
+			if err != nil {
+				return nil, err
+			}
+			them := StandardPerms{
+				BasePerms: perms,
+				PubKey:    destPubKey,
+				Usr:       toAddress,
+			}
+
+			ev := make(EditorsViewers, 0)
+			r1key, r1ivkey, err := MakePermsBlock("v", me, walletRef)
+			if err != nil {
+				return nil, err
+			}
+			r2key, r2ivkey, err := MakePermsBlock("v", them, walletRef)
+			if err != nil {
+				return nil, err
+			}
+			ev[r1key] = r1ivkey
+			ev[r2key] = r2ivkey
+
+			viewers, err := json.Marshal(ev)
+			if err != nil {
+				return nil, err
+			}
+			msg.Viewers = string(viewers)
 		}
-		msg.Viewers = string(viewers)
 	}
 
 	return &msg, nil
@@ -136,15 +140,15 @@ func ReadFileTreeEntry(owner string, rawPath string, walletRef types.Wallet) ([]
 
 	iv, key, err := crypt.StringToAes(walletRef, parsedViewingAccess[viewName])
 	if err != nil {
-		return nil, err
+		return []byte(contents), nil
 	}
 
 	final, err := DecryptDecompressString(contents, key, iv)
 	if err != nil {
-		return nil, err
+		return []byte(contents), nil
 	}
 
-	return []byte(final), err
+	return []byte(final), nil
 }
 
 func MakePermsBlock(base string, standardPerms StandardPerms, walletRef types.Wallet) (user string, perms string, err error) {
