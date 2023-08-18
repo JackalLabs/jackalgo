@@ -6,12 +6,12 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	"github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/bech32"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	ecies "github.com/ecies/go/v2"
@@ -38,7 +38,7 @@ type WalletHandler struct {
 	clientCtx client.Context
 	address   string
 	flags     *pflag.FlagSet
-	key       *cryptotypes.PrivKey
+	key       types.PrivKey
 	eciesKey  *ecies.PrivateKey
 }
 
@@ -72,16 +72,29 @@ func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHan
 	// cfg.SetAddressVerifier(wasmtypes.VerifyAddressLen())
 	cfg.Seal()
 
-	var pKey *cryptotypes.PrivKey = nil
-	address := ""
-	if len(seedPhrase) > 0 {
-		pKey = cryptotypes.GenPrivKeyFromSecret([]byte(seedPhrase))
-		var err error
-		address, err = bech32.ConvertAndEncode(Bech32PrefixAccAddr, pKey.PubKey().Address().Bytes())
-		if err != nil {
-			return nil, err
-		}
+	hdPath := hd.CreateHDPath(118, 0, 0).String()
+	// create master key and derive first key for keyring
+	derivedPriv, err := hd.Secp256k1.Derive()(seedPhrase, "", hdPath)
+	if err != nil {
+		return nil, err
 	}
+
+	pKey := hd.Secp256k1.Generate()(derivedPriv)
+
+	// check if the key already exists with the same address and return an error
+	// if found
+	address := sdk.AccAddress(pKey.PubKey().Address())
+
+	//var pKey *cryptotypes.PrivKey = nil
+	//address := ""
+	//if len(seedPhrase) > 0 {
+	//	pKey = cryptotypes.GenPrivKeyFromSecret([]byte(seedPhrase))
+	//	var err error
+	//	address, err = bech32.ConvertAndEncode(Bech32PrefixAccAddr, pKey.PubKey().Address().Bytes())
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
 
 	cl, err := client.NewClientFromNode(rpc)
 	if err != nil {
@@ -108,13 +121,13 @@ func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHan
 
 	eciesKey := ecies.NewPrivateKeyFromBytes(newpkey[:32])
 
-	flags := createFlags("auto", address)
+	flags := createFlags("auto", address.String())
 
 	w := WalletHandler{
 		clientCtx: clientCtx,
 		flags:     flags,
 		key:       pKey,
-		address:   address,
+		address:   address.String(),
 		eciesKey:  eciesKey,
 	}
 
