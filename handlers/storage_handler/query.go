@@ -26,6 +26,19 @@ func (s *StorageHandler) QueryGetPayData(address string) (*storagetypes.QueryPay
 	return res, err
 }
 
+func (s *StorageHandler) QueryFidCid(fid string) (*storagetypes.QueryFidCidResponse, error) {
+
+	req := storagetypes.QueryFidCidRequest{
+		Fid: fid,
+	}
+
+	queryClient := storagetypes.NewQueryClient(s.walletHandler.GetClientCtx())
+
+	res, err := queryClient.FidCid(context.Background(), &req)
+
+	return res, err
+}
+
 func (s *StorageHandler) QueryJackalPrice(bytes int64, duration int64) (*storagetypes.QueryPriceCheckResponse, error) {
 	tbs := utils.NumTo3xTB(bytes)
 	if duration <= 0 {
