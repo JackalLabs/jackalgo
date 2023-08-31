@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"github.com/JackalLabs/jackalgo/handlers/storage_handler"
 	"os"
 	"testing"
 
@@ -20,15 +21,22 @@ func TestFileUpload(t *testing.T) {
 		"lupulella-2")
 	r.NoError(err)
 
+	wallet = wallet.WithGas("500000")
+
+	s := storage_handler.NewStorageHandler(wallet)
+	res, err := s.BuyStorage(wallet.GetAddress(), 720, 1)
+	r.NoError(err)
+	fmt.Println(res.RawLog)
+
 	fmt.Println(wallet.GetAddress())
 
-	fileIO, err := file_io_handler.NewFileIoHandler(wallet.WithGas("500000"))
+	fileIO, err := file_io_handler.NewFileIoHandler(wallet)
 	r.NoError(err)
 
 	fileData, err := os.Open("test_data.txt")
 	r.NoError(err)
 
-	res, err := fileIO.GenerateInitialDirs([]string{"jackalgo"})
+	res, err = fileIO.GenerateInitialDirs([]string{"jackalgo"})
 	r.NoError(err)
 
 	r.Equal(uint32(0), res.Code)
@@ -61,4 +69,16 @@ func TestFileUpload(t *testing.T) {
 	fmt.Println(f.File.Details)
 
 	fmt.Println(f.GetFile().Buffer().String())
+
+	err = fileIO.DeleteTargets([]string{"test_data.txt"}, folder)
+	r.NoError(err)
+
+	_, err = fileIO.DownloadFile("s/jackalgo/test_data.txt")
+	r.Error(err)
+
+	folder, err = fileIO.DownloadFolder("s/jackalgo")
+	r.NoError(err)
+
+	fmt.Println(folder.GetChildFiles())
+	fmt.Println(folder.GetChildDirs())
 }

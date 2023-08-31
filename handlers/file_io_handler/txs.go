@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/JackalLabs/jackalgo/handlers/storage_handler"
+	"github.com/JackalLabs/jackalgo/utils"
 	"time"
 
 	"github.com/JackalLabs/jackalgo/handlers/file_upload_handler"
@@ -281,4 +283,124 @@ func (f *FileIoHandler) signAndPostFiletree(handlers []*file_upload_handler.File
 	}
 
 	return toBroadcast, nil
+}
+
+func (f *FileIoHandler) DeleteTargets(targets []string, parent *folder_handler.FolderHandler) error {
+	msgs, err := f.deleteTargets(targets, parent)
+	if err != nil {
+		return err
+	}
+
+	_, err = f.walletHandler.SendTx(msgs...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *FileIoHandler) makeDelete(creator string, target string) ([]sdk.Msg, error) {
+	s := storage_handler.NewStorageHandler(f.walletHandler)
+
+	msgs := make([]sdk.Msg, 0)
+
+	treeData, err := utils.GetFileTreeData(target, creator, f.walletHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	fids := Fids{}
+
+	err = json.Unmarshal([]byte(treeData.Files.Contents), &fids)
+	if err != nil {
+		return nil, err
+	}
+
+	cidRes, err := s.QueryFidCid(fids.Fids[0])
+	if err != nil {
+		return nil, err
+	}
+
+	var cids []string
+	err = json.Unmarshal([]byte(cidRes.FidCid.Cids), &cids)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cid := range cids {
+		msg := &storagetypes.MsgCancelContract{
+			Creator: creator,
+			Cid:     cid,
+		}
+
+		msgs = append(msgs, msg)
+	}
+
+	msg := &filetreetypes.MsgDeleteFile{
+		Creator:  creator,
+		HashPath: crypt.MerkleMeBro(target),
+		Account:  crypt.HashAndHex(creator),
+	}
+	msgs = append(msgs, msg)
+
+	return msgs, nil
+}
+
+func (f *FileIoHandler) deleteTargets(targets []string, parent *folder_handler.FolderHandler) ([]sdk.Msg, error) {
+	childFiles := parent.GetChildFiles()
+	childFolders := parent.GetChildDirs()
+
+	msgs := make([]sdk.Msg, 0)
+	location := fmt.Sprintf("%s/%s", parent.GetWhereAmI(), parent.GetWhoAmI())
+
+	for _, childFile := range childFiles {
+		for _, target := range targets {
+			rawPath := fmt.Sprintf("%s/%s", location, target)
+			if target == childFile.Name {
+				deletionMessages, err := f.makeDelete(f.walletHandler.GetAddress(), rawPath)
+				if err != nil {
+					return nil, err
+				}
+
+				msg, err := parent.RemoveChildFileReferences([]string{target})
+				if err != nil {
+					return nil, err
+				}
+				msgs = append(msgs, msg)
+
+				msgs = append(msgs, deletionMessages...)
+			}
+		}
+	}
+	for _, childFolder := range childFolders {
+		for _, target := range targets {
+			rawPath := fmt.Sprintf("%s/%s", location, target)
+			if target == childFolder {
+				innerFolder, err := f.DownloadFolder(rawPath)
+				if err != nil {
+					return nil, err
+				}
+
+				msg, err := parent.RemoveChildDirReferences([]string{target})
+				if err != nil {
+					return nil, err
+				}
+				msgs = append(msgs, msg)
+
+				dirs := innerFolder.GetChildDirs()
+				for _, file := range innerFolder.GetChildFiles() {
+					dirs = append(dirs, file.Name)
+				}
+
+				deletionMessages, err := f.deleteTargets(dirs, innerFolder)
+				if err != nil {
+					return nil, err
+				}
+
+				msgs = append(msgs, deletionMessages...)
+			}
+		}
+	}
+
+	return msgs, nil
 }
