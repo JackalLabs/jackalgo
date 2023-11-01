@@ -22,12 +22,10 @@ import (
 )
 
 func (f *FileIoHandler) SignAndBroadcast(msgs []sdk.Msg) error {
-	res, err := f.walletHandler.SendTx(msgs...)
+	_, err := f.walletHandler.SendTx(msgs...)
 	if err != nil {
 		return err
 	}
-	fmt.Println(res.Code)
-	fmt.Println(res.RawLog)
 	return nil
 }
 
@@ -40,14 +38,7 @@ func (f *FileIoHandler) LoadNestedFolder(rawPath string) (folderHandlers *folder
 		parentSubString := strings.Join(pathChunks[0:i], "/")
 		subString := strings.Join(pathChunks[0:i+1], "/")
 
-		fmt.Println("cycle start")
-		fmt.Println(parentSubString)
-		fmt.Println(subString)
-
 		rawSubFolder, err := compression.ReadFileTreeEntry(f.walletHandler.GetAddress(), subString, f.walletHandler)
-		fmt.Println(rawSubFolder)
-		fmt.Println(err)
-		fmt.Println(pathChunks[i])
 		if err != nil {
 			folders[subString] = folder_handler.TrackNewFolder(
 				pathChunks[i],
@@ -56,12 +47,7 @@ func (f *FileIoHandler) LoadNestedFolder(rawPath string) (folderHandlers *folder
 				f.walletHandler,
 			)
 
-			fmt.Println(folders[subString].GetFolderDetails())
-
 			msg, _, err := folders[parentSubString].AddChildDirs([]string{pathChunks[i]})
-			fmt.Println(folders[parentSubString].GetChildDirs())
-			fmt.Println(msg)
-			fmt.Println(err)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -76,10 +62,7 @@ func (f *FileIoHandler) LoadNestedFolder(rawPath string) (folderHandlers *folder
 
 			folders[subString] = folder_handler.TrackFolder(subFrame, f.walletHandler)
 		}
-		fmt.Println("msgs")
-		fmt.Println(msgs)
 	}
-	fmt.Println("LoadNestedFolder done")
 
 	return folders[rawPath], msgs, err
 }
