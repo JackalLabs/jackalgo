@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/JackalLabs/jackalgo/handlers/storage_handler"
 	"github.com/JackalLabs/jackalgo/utils"
+	"strings"
 	"time"
 
 	"github.com/JackalLabs/jackalgo/handlers/file_upload_handler"
@@ -19,6 +20,69 @@ import (
 	filetreetypes "github.com/jackalLabs/canine-chain/v3/x/filetree/types"
 	storagetypes "github.com/jackalLabs/canine-chain/v3/x/storage/types"
 )
+
+func (f *FileIoHandler) SignAndBroadcast(msgs []sdk.Msg) error {
+	res, err := f.walletHandler.SendTx(msgs...)
+	if err != nil {
+		return err
+	}
+	fmt.Println(res.Code)
+	fmt.Println(res.RawLog)
+	return nil
+}
+
+func (f *FileIoHandler) LoadNestedFolder(rawPath string) (folderHandlers *folder_handler.FolderHandler, msgs []sdk.Msg, err error) {
+	folders := folder_handler.FolderGroup{}
+	msgs = []sdk.Msg{}
+	pathChunks := strings.Split(rawPath, "/")
+
+	for i := 1; i < len(pathChunks); i++ {
+		parentSubString := strings.Join(pathChunks[0:i], "/")
+		subString := strings.Join(pathChunks[0:i+1], "/")
+
+		fmt.Println("cycle start")
+		fmt.Println(parentSubString)
+		fmt.Println(subString)
+
+		rawSubFolder, err := compression.ReadFileTreeEntry(f.walletHandler.GetAddress(), subString, f.walletHandler)
+		fmt.Println(rawSubFolder)
+		fmt.Println(err)
+		fmt.Println(pathChunks[i])
+		if err != nil {
+			folders[subString] = folder_handler.TrackNewFolder(
+				pathChunks[i],
+				parentSubString,
+				folders[parentSubString].GetWhoOwnsMe(),
+				f.walletHandler,
+			)
+
+			fmt.Println(folders[subString].GetFolderDetails())
+
+			msg, _, err := folders[parentSubString].AddChildDirs([]string{pathChunks[i]})
+			fmt.Println(folders[parentSubString].GetChildDirs())
+			fmt.Println(msg)
+			fmt.Println(err)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			msgs = append(msgs, msg...)
+		} else {
+			var subFrame folder_handler.FolderFileFrame
+			err = json.Unmarshal(rawSubFolder, &subFrame)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			folders[subString] = folder_handler.TrackFolder(subFrame, f.walletHandler)
+		}
+		fmt.Println("msgs")
+		fmt.Println(msgs)
+	}
+	fmt.Println("LoadNestedFolder done")
+
+	return folders[rawPath], msgs, err
+}
 
 func (f *FileIoHandler) CreateFolders(parentDir *folder_handler.FolderHandler, newDirs []string) (msgs []sdk.Msg, err error) {
 	msgs, existing, err := parentDir.AddChildDirs(newDirs)
@@ -95,6 +159,8 @@ func (f *FileIoHandler) GenerateInitialDirs(startingDirs []string) (*sdk.TxRespo
 		}
 		dirMsgs[i] = msg
 	}
+
+	//fmt.Println(dirMsgs)
 
 	readyToBroadcast := make([]sdk.Msg, 0)
 

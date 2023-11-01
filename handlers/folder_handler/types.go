@@ -16,6 +16,8 @@ type FolderHandler struct {
 	walletHandler *wallet_handler.WalletHandler
 }
 
+type FolderGroup map[string]*FolderHandler
+
 func NewFolderHandler(frame FolderFileFrame, wallet *wallet_handler.WalletHandler) *FolderHandler {
 	r := FolderHandler{
 		folderDetails: frame,
@@ -86,14 +88,18 @@ func (f *FolderHandler) AddChildDirs(childNames []string) ([]sdk.Msg, []string, 
 	existing := make([]string, 0)
 	more := make([]string, 0)
 
-	for _, name := range childNames {
-		for _, childDir := range f.folderDetails.DirChildren {
-			if name == childDir {
-				existing = append(existing, name)
-				continue
+	if len(f.folderDetails.DirChildren) > 0 {
+		for _, name := range childNames {
+			for _, childDir := range f.folderDetails.DirChildren {
+				if name == childDir {
+					existing = append(existing, name)
+					continue
+				}
+				more = append(more, name)
 			}
-			more = append(more, name)
 		}
+	} else {
+		more = append(more, childNames...)
 	}
 
 	msgs := make([]sdk.Msg, len(more))

@@ -85,17 +85,6 @@ func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHan
 	// if found
 	address := sdk.AccAddress(pKey.PubKey().Address())
 
-	//var pKey *cryptotypes.PrivKey = nil
-	//address := ""
-	//if len(seedPhrase) > 0 {
-	//	pKey = cryptotypes.GenPrivKeyFromSecret([]byte(seedPhrase))
-	//	var err error
-	//	address, err = bech32.ConvertAndEncode(Bech32PrefixAccAddr, pKey.PubKey().Address().Bytes())
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
-
 	cl, err := client.NewClientFromNode(rpc)
 	if err != nil {
 		return nil, err
@@ -121,11 +110,12 @@ func NewWalletHandler(seedPhrase string, rpc string, chainId string) (*WalletHan
 
 	eciesKey := ecies.NewPrivateKeyFromBytes(newpkey[:32])
 
-	flags := createFlags("auto", address.String())
+	flgs := createFlags("auto", address.String())
+	flgs.Float64(flags.FlagGasAdjustment, 1.5, fmt.Sprintf("the gas adjustment, the default is %f", 1.5))
 
 	w := WalletHandler{
 		clientCtx: clientCtx,
-		flags:     flags,
+		flags:     flgs,
 		key:       pKey,
 		address:   address.String(),
 		eciesKey:  eciesKey,
