@@ -2,9 +2,10 @@ package tests
 
 import (
 	"fmt"
-	"github.com/JackalLabs/jackalgo/handlers/storage_handler"
 	"os"
 	"testing"
+
+	"github.com/JackalLabs/jackalgo/handlers/storage_handler"
 
 	"github.com/JackalLabs/jackalgo/handlers/file_io_handler"
 	"github.com/JackalLabs/jackalgo/handlers/file_upload_handler"
@@ -49,7 +50,7 @@ func TestFileUpload(t *testing.T) {
 
 	r.Equal("test_data.txt", file.GetWhoAmI())
 
-	failed, fids, cids, err := fileIO.StaggeredUploadFiles([]*file_upload_handler.FileUploadHandler{file}, folder, false)
+	failed, fids, cids, err := fileIO.StaggeredUploadFiles([]*file_upload_handler.FileUploadHandler{file}, folder, false, false)
 	r.NoError(err)
 
 	fmt.Println(fids)

@@ -5,10 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/JackalLabs/jackalgo/handlers/storage_handler"
-	"github.com/JackalLabs/jackalgo/utils"
 	"strings"
 	"time"
+
+	"github.com/JackalLabs/jackalgo/handlers/storage_handler"
+	"github.com/JackalLabs/jackalgo/utils"
 
 	"github.com/JackalLabs/jackalgo/handlers/file_upload_handler"
 	"github.com/JackalLabs/jackalgo/handlers/folder_handler"
@@ -143,7 +144,7 @@ func (f *FileIoHandler) GenerateInitialDirs(startingDirs []string) (*sdk.TxRespo
 		dirMsgs[i] = msg
 	}
 
-	//fmt.Println(dirMsgs)
+	// fmt.Println(dirMsgs)
 
 	readyToBroadcast := make([]sdk.Msg, 0)
 
@@ -172,7 +173,7 @@ func (f *FileIoHandler) GenerateInitialDirs(startingDirs []string) (*sdk.TxRespo
 	return f.walletHandler.SendTx(readyToBroadcast...)
 }
 
-func (f *FileIoHandler) StaggeredUploadFiles(sourceFiles []*file_upload_handler.FileUploadHandler, parent *folder_handler.FolderHandler, public bool) (failedCount int, fids []string, cids []string, err error) {
+func (f *FileIoHandler) StaggeredUploadFiles(sourceFiles []*file_upload_handler.FileUploadHandler, parent *folder_handler.FolderHandler, public bool, forever bool) (failedCount int, fids []string, cids []string, err error) {
 	failedFiles := make([]*types.File, 0)
 	fids = make([]string, 0)
 	cids = make([]string, 0)
@@ -233,7 +234,7 @@ func (f *FileIoHandler) StaggeredUploadFiles(sourceFiles []*file_upload_handler.
 			metas[handler.GetMeta().Name] = handler.GetMeta()
 
 		}
-		msgs, err := f.signAndPostFiletree(handlers)
+		msgs, err := f.signAndPostFiletree(handlers, forever)
 		if err != nil {
 			continue
 		}
@@ -258,7 +259,7 @@ func (f *FileIoHandler) StaggeredUploadFiles(sourceFiles []*file_upload_handler.
 	return len(failedFiles) + failedCount, fids, cids, nil
 }
 
-func (f *FileIoHandler) signAndPostFiletree(handlers []*file_upload_handler.FileUploadHandler) ([]sdk.Msg, error) {
+func (f *FileIoHandler) signAndPostFiletree(handlers []*file_upload_handler.FileUploadHandler, forever bool) ([]sdk.Msg, error) {
 	toBroadcast := make([]sdk.Msg, 0)
 
 	if len(handlers) == 0 {
@@ -323,7 +324,7 @@ func (f *FileIoHandler) signAndPostFiletree(handlers []*file_upload_handler.File
 		msgSign := storagetypes.MsgSignContract{
 			Creator: f.walletHandler.GetAddress(),
 			Cid:     cid,
-			PayOnce: false,
+			PayOnce: forever,
 		}
 
 		toBroadcast = append(toBroadcast, &msgSign)
