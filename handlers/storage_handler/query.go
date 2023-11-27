@@ -27,7 +27,6 @@ func (s *StorageHandler) QueryGetPayData(address string) (*storagetypes.QueryPay
 }
 
 func (s *StorageHandler) QueryFidCid(fid string) (*storagetypes.QueryFidCidResponse, error) {
-
 	req := storagetypes.QueryFidCidRequest{
 		Fid: fid,
 	}
